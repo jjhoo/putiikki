@@ -8,7 +8,7 @@ from sqlalchemy.engine.url import URL
 # varchar or text type? no truncation with text, common enough?
 from sqlalchemy.dialects.postgresql import TEXT
 
-import settings
+from . import settings
 
 Base = declarative_base()
 
