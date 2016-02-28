@@ -1,14 +1,13 @@
 import sqlalchemy as sqla
-from sqlalchemy import Column, Boolean, Integer, Numeric, String, \
+from sqlalchemy import Column, Boolean, DateTime, Integer, Numeric, String, \
     CheckConstraint, ForeignKey, UniqueConstraint
 
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.engine.url import URL
 
 # varchar or text type? no truncation with text, common enough?
 from sqlalchemy.dialects.postgresql import TEXT
 
-from . import settings
+import datetime
 
 Base = declarative_base()
 
@@ -16,13 +15,15 @@ class Catalog(Base):
     __tablename__ = 'catalog'
 
     id = Column(Integer, primary_key=True)
-    item_code = Column(TEXT, nullable=False, unique=True)
+    code = Column(TEXT, nullable=False, unique=True)
+
     # descriptions could be in a separate table
     # (language, short_description, description)
-    item_short_description = Column(TEXT, nullable=False)
-    item_description = Column(TEXT, nullable=False)
+    description = Column(TEXT, nullable=False)
+    long_description = Column(TEXT, nullable=True)
 
-    __table_args__ = (CheckConstraint('char_length(item_code) >= 4'),)
+    __table_args__ = (CheckConstraint('char_length(code) >= 4'),
+                      CheckConstraint('char_length(description) >= 4'),)
 
 class Stock(Base):
     __tablename__ = 'stock'
@@ -35,18 +36,41 @@ class Stock(Base):
     price = Column(Numeric(12,2), nullable=False)
     visible = Column(Boolean, default=True, nullable=False)
 
+    modification = Column(DateTime, default=datetime.datetime.utcnow,
+                          nullable=False)
+
     __table_args__ = (CheckConstraint('count >= 0'),
                       CheckConstraint('price >= 0.0'), )
 
 class Basket(Base):
     __tablename__ = 'basket'
     id = Column(Integer, primary_key=True)
+    # session cookie
+    session = Column(TEXT, nullable=False)
+
+    creation = Column(DateTime, default=datetime.datetime.utcnow,
+                      nullable=False)
+    modification = Column(DateTime, default=datetime.datetime.utcnow,
+                          nullable=False)
+
+class BasketItems(Base):
+    __tablename__ = 'basket_items'
+    id = Column(Integer, primary_key=True)
+    basket = Column(Integer,
+                    ForeignKey("basket.id",
+                                onupdate="CASCADE", ondelete="CASCADE"),
+                    nullable=False)
     item = Column(Integer,
                   ForeignKey("catalog.id",
                              onupdate="CASCADE", ondelete="CASCADE"),
                   nullable=False)
     # count may be larger then reserved count
     count = Column(Integer, nullable=False)
+
+    creation = Column(DateTime, default=datetime.datetime.utcnow,
+                      nullable=False)
+    modification = Column(DateTime, default=datetime.datetime.utcnow,
+                          nullable=False)
 
     __table_args__ = (CheckConstraint('count >= 0'),)
 
@@ -63,11 +87,13 @@ class Reservations(Base):
                     nullable=False)
     count = Column(Integer, nullable=False)
 
+    creation = Column(DateTime, default=datetime.datetime.utcnow,
+                      nullable=False)
+    modification = Column(DateTime, default=datetime.datetime.utcnow,
+                          nullable=False)
+
     __table_args__ = (CheckConstraint('count >= 0'),
                       UniqueConstraint('item', 'basket'))
-
-def db_connect():
-    return sqla.create_engine(URL(**settings.DB_ENGINE))
 
 def create_tables(engine):
     Base.metadata.create_all(engine)

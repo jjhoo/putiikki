@@ -1,0 +1,21 @@
+[ { "code": "SIEMENP_BACC_AJICRISTAL5",
+    "description": "Aji cristal siemenpussi 5 siementä",
+    "price": 1.00,
+    "count": 100
+  },
+  { "code": "SIEMENP_BACC_LEMONDROP5",
+    "description": "Lemon Drop siemenpussi 5 siementä",
+    "price": 1.50,
+    "count": 20
+  },
+  { "code": "SIEMENP_BACC_AJICRISTAL20",
+    "description": "Aji cristal siemenpussi 20 siementä",
+    "price": 3.50,
+    "count": 20
+  },
+  { "code": "SIEMENP_BACC_LEMONDROP20",
+    "description": "Lemon Drop siemenpussi 20 siementä",
+    "price": 5.00,
+    "count": 20
+  }
+]
