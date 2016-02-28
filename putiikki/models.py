@@ -12,7 +12,7 @@ import datetime
 Base = declarative_base()
 
 class Item(Base):
-    __tablename__ = 'item'
+    __tablename__ = 'items'
 
     id = Column(Integer, primary_key=True)
     code = Column(TEXT, nullable=False, unique=True)
@@ -26,7 +26,7 @@ class Item(Base):
                       CheckConstraint('char_length(description) >= 4'),)
 
 class Category(Base):
-    __tablename__ = 'category'
+    __tablename__ = 'categories'
 
     id = Column(Integer, primary_key=True)
     name = Column(TEXT, nullable=False, unique=True)
@@ -34,15 +34,15 @@ class Category(Base):
     __table_args__ = (CheckConstraint('char_length(name) >= 4'),)
 
 class ItemCategory(Base):
-    __tablename__ = 'item_category'
+    __tablename__ = 'item_categories'
 
     id = Column(Integer, primary_key=True)
     item = Column(Integer,
-                  ForeignKey("item.id",
+                  ForeignKey("items.id",
                              onupdate="CASCADE", ondelete="CASCADE"),
                   nullable=False)
     category = Column(Integer,
-                      ForeignKey("category.id",
+                      ForeignKey("categories.id",
                                  onupdate="CASCADE", ondelete="CASCADE"),
                       nullable=False)
     primary = Column(Boolean, default=False, nullable=False)
@@ -50,12 +50,12 @@ class ItemCategory(Base):
     __table_args__ = (UniqueConstraint('item', 'category'),)
 
 class Stock(Base):
-    __tablename__ = 'stock'
+    __tablename__ = 'stocks'
     id = Column(Integer, primary_key=True)
     item = Column(Integer,
-                  ForeignKey("item.id",
+                  ForeignKey("items.id",
                              onupdate="CASCADE", ondelete="CASCADE"),
-                  nullable=False)
+                  nullable=False, unique=True)
     count = Column(Integer, nullable=False)
     price = Column(Numeric(12,2), nullable=False)
     visible = Column(Boolean, default=True, nullable=False)
@@ -67,9 +67,9 @@ class Stock(Base):
                       CheckConstraint('price >= 0.0'), )
 
 class Basket(Base):
-    __tablename__ = 'basket'
+    __tablename__ = 'baskets'
     id = Column(Integer, primary_key=True)
-    # session cookie
+    # session cookie... could be a reference to Session table
     session = Column(TEXT, nullable=False)
 
     creation = Column(DateTime, default=datetime.datetime.utcnow,
@@ -77,17 +77,17 @@ class Basket(Base):
     modification = Column(DateTime, default=datetime.datetime.utcnow,
                           nullable=False)
 
-class BasketItems(Base):
+class BasketItem(Base):
     __tablename__ = 'basket_items'
     id = Column(Integer, primary_key=True)
     basket = Column(Integer,
-                    ForeignKey("basket.id",
+                    ForeignKey("baskets.id",
                                 onupdate="CASCADE", ondelete="CASCADE"),
                     nullable=False)
-    item = Column(Integer,
-                  ForeignKey("item.id",
-                             onupdate="CASCADE", ondelete="CASCADE"),
-                  nullable=False)
+    stock = Column(Integer,
+                   ForeignKey("stocks.id",
+                              onupdate="CASCADE", ondelete="CASCADE"),
+                   nullable=False)
     # count may be larger then reserved count
     count = Column(Integer, nullable=False)
 
@@ -98,17 +98,17 @@ class BasketItems(Base):
 
     __table_args__ = (CheckConstraint('count >= 0'),)
 
-class Reservations(Base):
+class Reservation(Base):
     __tablename__ = 'reservations'
     id = Column(Integer, primary_key=True)
-    item = Column(Integer,
-                  ForeignKey("stock.id",
-                             onupdate="CASCADE", ondelete="CASCADE"),
-                  nullable=False)
-    basket = Column(Integer,
-                    ForeignKey("basket.id",
-                               onupdate="CASCADE", ondelete="CASCADE"),
-                    nullable=False)
+    stock = Column(Integer,
+                   ForeignKey("stocks.id",
+                              onupdate="CASCADE", ondelete="CASCADE"),
+                   nullable=False)
+    basket_item = Column(Integer,
+                         ForeignKey("basket_items.id",
+                                    onupdate="CASCADE", ondelete="CASCADE"),
+                         nullable=False)
     count = Column(Integer, nullable=False)
 
     creation = Column(DateTime, default=datetime.datetime.utcnow,
@@ -117,7 +117,7 @@ class Reservations(Base):
                           nullable=False)
 
     __table_args__ = (CheckConstraint('count >= 0'),
-                      UniqueConstraint('item', 'basket'))
+                      UniqueConstraint('stock', 'basket_item'))
 
 def create_tables(engine):
     Base.metadata.create_all(engine)

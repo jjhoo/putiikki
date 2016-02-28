@@ -33,5 +33,29 @@
     "description": "Pimientos de Padron siemenpussi 20 siementä",
     "price": 9.00,
     "count": 10
+  },
+  { "code": "SIEMENP_CAPCHIN_NAGA5",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum chinense"],
+    "description": "Naga Morich siemenpussi 5 siementä",
+    "price": 2.00,
+    "count": 40
+  },
+  { "code": "SIEMENP_CAPCHIN_7POT5",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum chinense"],
+    "description": "7pot siemenpussi 5 siementä",
+    "price": 2.00,
+    "count": 40
+  },
+  { "code": "SIEMENP_CAPCHIN_BHUTJ5",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum chinense"],
+    "description": "Bhut Jolokia siemenpussi 5 siementä",
+    "price": 2.00,
+    "count": 40
+  },
+  { "code": "SIEMENP_CAPCHIN_CAJAM5",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum chinense"],
+    "description": "Cajamarca siemenpussi 5 siementä",
+    "price": 2.00,
+    "count": 40
   }
 ]
