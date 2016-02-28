@@ -11,8 +11,8 @@ import datetime
 
 Base = declarative_base()
 
-class Catalog(Base):
-    __tablename__ = 'catalog'
+class Item(Base):
+    __tablename__ = 'item'
 
     id = Column(Integer, primary_key=True)
     code = Column(TEXT, nullable=False, unique=True)
@@ -25,11 +25,35 @@ class Catalog(Base):
     __table_args__ = (CheckConstraint('char_length(code) >= 4'),
                       CheckConstraint('char_length(description) >= 4'),)
 
+class Category(Base):
+    __tablename__ = 'category'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(TEXT, nullable=False, unique=True)
+
+    __table_args__ = (CheckConstraint('char_length(name) >= 4'),)
+
+class ItemCategory(Base):
+    __tablename__ = 'item_category'
+
+    id = Column(Integer, primary_key=True)
+    item = Column(Integer,
+                  ForeignKey("item.id",
+                             onupdate="CASCADE", ondelete="CASCADE"),
+                  nullable=False)
+    category = Column(Integer,
+                      ForeignKey("category.id",
+                                 onupdate="CASCADE", ondelete="CASCADE"),
+                      nullable=False)
+    primary = Column(Boolean, default=False, nullable=False)
+
+    __table_args__ = (UniqueConstraint('item', 'category'),)
+
 class Stock(Base):
     __tablename__ = 'stock'
     id = Column(Integer, primary_key=True)
     item = Column(Integer,
-                  ForeignKey("catalog.id",
+                  ForeignKey("item.id",
                              onupdate="CASCADE", ondelete="CASCADE"),
                   nullable=False)
     count = Column(Integer, nullable=False)
@@ -61,7 +85,7 @@ class BasketItems(Base):
                                 onupdate="CASCADE", ondelete="CASCADE"),
                     nullable=False)
     item = Column(Integer,
-                  ForeignKey("catalog.id",
+                  ForeignKey("item.id",
                              onupdate="CASCADE", ondelete="CASCADE"),
                   nullable=False)
     # count may be larger then reserved count

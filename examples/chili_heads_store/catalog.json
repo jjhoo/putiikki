@@ -1,21 +1,37 @@
-[ { "code": "SIEMENP_BACC_AJICRISTAL5",
+[ { "code": "SIEMENP_CAPBACC_AJICRISTAL5",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum baccatum"],
     "description": "Aji cristal siemenpussi 5 siementä",
     "price": 1.00,
     "count": 100
   },
-  { "code": "SIEMENP_BACC_LEMONDROP5",
+  { "code": "SIEMENP_CAPBACC_LEMONDROP5",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum baccatum"],
     "description": "Lemon Drop siemenpussi 5 siementä",
     "price": 1.50,
     "count": 20
   },
-  { "code": "SIEMENP_BACC_AJICRISTAL20",
+  { "code": "SIEMENP_CAPBACC_AJICRISTAL20",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum baccatum"],
     "description": "Aji cristal siemenpussi 20 siementä",
     "price": 3.50,
     "count": 20
   },
-  { "code": "SIEMENP_BACC_LEMONDROP20",
+  { "code": "SIEMENP_CAPBACC_LEMONDROP20",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum baccatum"],
     "description": "Lemon Drop siemenpussi 20 siementä",
     "price": 5.00,
     "count": 20
+  },
+  { "code": "SIEMENP_CAPANN_PADRON5",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum annuum"],
+    "description": "Pimientos de Padron siemenpussi 5 siementä",
+    "price": 2.00,
+    "count": 40
+  },
+  { "code": "SIEMENP_CAPANN_PADRON20",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum annuum"],
+    "description": "Pimientos de Padron siemenpussi 20 siementä",
+    "price": 9.00,
+    "count": 10
   }
 ]

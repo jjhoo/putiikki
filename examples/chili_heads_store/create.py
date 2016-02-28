@@ -16,8 +16,8 @@ with open('catalog.json', 'r') as fp:
     items = json.load(fp, encoding="ISO-8859-1")
 
 print(items)
-be.add_to_catalog(items)
-print(be.get_item('SIEMENP_BACC_LEMONDROP20'))
-print(be.get_price('SIEMENP_BACC_LEMONDROP20'))
+be.add_items(items)
+print(be.get_item('SIEMENP_CAPBACC_LEMONDROP20'))
+print(be.get_price('SIEMENP_CAPBACC_LEMONDROP20'))
 
 
