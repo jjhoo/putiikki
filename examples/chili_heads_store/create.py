@@ -31,6 +31,30 @@ for x in be.list_items('description', ascending=True, page=2, page_size=5):
     print(x)
 print("")
 
+print("by prefix and price range")
+for x in be.search_items(prefix='Aji', price_range=(0.0, 2.0),
+                         sort_key='price', ascending=True,
+                         page=1, page_size=50):
+    print(x)
+print("")
+
+for x in be.search_items(prefix='', price_range=(2.0, 5.0),
+                         sort_key='price', ascending=True,
+                         page=1, page_size=50):
+    print(x)
+print("")
+
+print("by price groups")
+res = be.list_items_by_prices(prices=[('<', 2.0), ('>=', 2.0)],
+                              sort_key='price', ascending=True,
+                              page=1, page_size=50)
+for n, (x, y) in enumerate(res, 1):
+    print('Price group {:d}'.format(n))
+    for item in y:
+        print(item)
+    print("")
+print("")
+
 session_id = str(uuid.uuid4())
 print("Basket 1 %s" % session_id)
 basket = be.create_basket(session_id)

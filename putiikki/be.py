@@ -11,6 +11,27 @@ def db_connect(settings):
     return sqla.create_engine(URL(**settings['DB_ENGINE']),
                               isolation_level='SERIALIZABLE')
 
+def ordering(q, ascending, sort_key):
+    if ascending:
+        order = sqla.asc
+    else:
+        order = sqla.desc
+
+    if sort_key == 'description':
+        q = q.order_by(order(models.Item.description))
+    elif sort_key == 'price':
+        q = q.order_by(order(models.Stock.price))
+    else:
+        raise ValueError("Invalid key")
+    return q
+
+def pagination(q, page, page_size):
+    if page >= 1:
+        q = q.limit(page_size).offset((page - 1) * page_size)
+    else:
+        raise ValueError("Invalid page")
+    return q
+
 class Catalog(object):
     def __init__(self, engine):
         self.engine = engine
@@ -161,7 +182,8 @@ class Catalog(object):
 
         self.session.commit()
 
-    def list_items(self, key, ascending=True, page=1, page_size=10):
+    def list_items(self, sort_key='description',
+                   ascending=True, page=1, page_size=10):
         q = self.session.query(models.Item, models.Category,
                                models.ItemCategory, models.Stock).\
           with_entities(models.Item.code, models.Item.description,
@@ -172,24 +194,73 @@ class Catalog(object):
           filter(models.ItemCategory.category == models.Category.id).\
           filter(models.ItemCategory.primary == True)
 
-        if ascending:
-            order = sqla.asc
-        else:
-            order = sqla.desc
-
-        if key == 'description':
-            q = q.order_by(order(models.Item.description))
-        elif key == 'price':
-            q = q.order_by(order(models.Stock.price))
-        else:
-            raise ValueError("Invalid key")
-
-        if page >= 1:
-            q = q.limit(page_size).offset((page - 1) * page_size)
-        else:
-            raise ValueError("Invalid page")
+        q = ordering(q, ascending, sort_key)
+        q = pagination(q, page, page_size)
 
         res = [x for x in q]
+        return res
+
+    def search_items(self, prefix, price_range, sort_key='description',
+                     ascending=True, page=1, page_size=10):
+        q = self.session.query(models.Item, models.Category,
+                               models.ItemCategory, models.Stock).\
+          with_entities(models.Item.code, models.Item.description,
+                        models.Category.name, models.Stock.price,
+                        models.Stock.count).\
+          filter(models.Stock.price.between(*price_range),
+                 models.Item.id == models.Stock.item,
+                 models.Item.description.like('{:s}%'.format(prefix)),
+                 models.ItemCategory.item == models.Item.id,
+                 models.ItemCategory.category == models.Category.id,
+                 models.ItemCategory.primary == True)
+
+        q = ordering(q, ascending, sort_key)
+        q = pagination(q, page, page_size)
+
+        res = [x for x in q]
+        return res
+
+    def list_items_by_prices(self, prices, sort_key='price', prefix=None,
+                             ascending=True, page=1, page_size=10):
+        def start():
+            q = self.session.query(models.Item,
+                                   models.Category,
+                                   models.ItemCategory,
+                                   models.Stock).\
+              with_entities(models.Item.code, models.Item.description,
+                            models.Category.name, models.Stock.price,
+                            models.Stock.count)
+            if prefix is not None:
+                q = q.filter(models.Item.description.like('{:s}%'.format(prefix)))
+            return q
+
+        def rest(q):
+            q = q.filter(models.Item.id == models.Stock.item,
+                         models.ItemCategory.item == models.Item.id,
+                         models.ItemCategory.category == models.Category.id,
+                         models.ItemCategory.primary == True)
+            return q
+
+        res = []
+        for price_def in prices:
+            q = start()
+            if price_def[0] == '<':
+                q = q.filter(models.Stock.price < price_def[1])
+            elif price_def[0] == '<=':
+                q = q.filter(models.Stock.price <= price_def[1])
+            elif price_def[0] == '>':
+                q = q.filter(models.Stock.price > price_def[1])
+            elif price_def[0] == '>=':
+                q = q.filter(models.Stock.price >= price_def[1])
+            else:
+                q = q.filter(models.Stock.price.between(*price_def))
+            q = rest(q)
+            q = ordering(q, ascending, sort_key)
+            # may not work as intended?
+            q = pagination(q, page, page_size)
+
+            res2 = [x for x in q]
+            res.append((price_def, res2))
         return res
 
     # Basket related methods
