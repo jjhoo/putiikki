@@ -22,6 +22,15 @@ be.add_items(items)
 print(be.get_item('SIEMENP_CAPBACC_LEMONDROP20'))
 print(be.get_stock('SIEMENP_CAPBACC_LEMONDROP20'))
 
+print("page 1")
+for x in be.list_items('description', ascending=True, page=1, page_size=5):
+    print(x)
+
+print("page 2")
+for x in be.list_items('description', ascending=True, page=2, page_size=5):
+    print(x)
+print("")
+
 session_id = str(uuid.uuid4())
 print("Basket 1 %s" % session_id)
 basket = be.create_basket(session_id)
@@ -46,5 +55,9 @@ basket2.dump(sys.stdout)
 be.remove_item('SIEMENP_CAPBACC_LEMONDROP5')
 print("Basket 1 %s" % session_id)
 basket.dump(sys.stdout)
+print("Basket 2 %s" % session2_id)
+basket2.dump(sys.stdout)
+
+be.update_item('SIEMENP_CAPBACC_LEMONDROP20', description="asdf")
 print("Basket 2 %s" % session2_id)
 basket2.dump(sys.stdout)

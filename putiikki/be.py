@@ -53,6 +53,22 @@ class Catalog(object):
           delete()
         self.session.commit()
 
+    def update_item(self, code, description=None, long_description=None,
+                    new_code=None):
+        q = self.session.query(models.Item).filter(models.Item.code == code)
+        item = q.first()
+
+        self.session.begin(subtransactions=True)
+        if new_code is not None:
+            item.code = new_code
+
+        if description is not None:
+            item.description = description
+
+        if long_description is not None:
+            item.long_description = long_description
+        self.session.commit()
+
     def get_stock(self, code):
         q = self.session.query(models.Item, models.Stock).\
           with_entities(models.Stock).\
@@ -144,6 +160,37 @@ class Catalog(object):
                 primary = False
 
         self.session.commit()
+
+    def list_items(self, key, ascending=True, page=1, page_size=10):
+        q = self.session.query(models.Item, models.Category,
+                               models.ItemCategory, models.Stock).\
+          with_entities(models.Item.code, models.Item.description,
+                        models.Category.name, models.Stock.price,
+                        models.Stock.count).\
+          filter(models.Item.id == models.Stock.item).\
+          filter(models.ItemCategory.item == models.Item.id).\
+          filter(models.ItemCategory.category == models.Category.id).\
+          filter(models.ItemCategory.primary == True)
+
+        if ascending:
+            order = sqla.asc
+        else:
+            order = sqla.desc
+
+        if key == 'description':
+            q = q.order_by(order(models.Item.description))
+        elif key == 'price':
+            q = q.order_by(order(models.Stock.price))
+        else:
+            raise ValueError("Invalid key")
+
+        if page >= 1:
+            q = q.limit(page_size).offset((page - 1) * page_size)
+        else:
+            raise ValueError("Invalid page")
+
+        res = [x for x in q]
+        return res
 
     # Basket related methods
     def create_basket(self, session):
