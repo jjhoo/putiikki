@@ -10,7 +10,7 @@ from . import models
 def db_connect(settings):
     return sqla.create_engine(URL(**settings['DB_ENGINE']))
 
-class BE(object):
+class Catalog(object):
     def __init__(self, engine):
         self.engine = engine
         self.session = Session(bind=self.engine)

@@ -12,7 +12,7 @@ dbc = be.db_connect(settings)
 models.drop_tables(dbc)
 models.create_tables(dbc)
 
-be = be.BE(dbc)
+be = be.Catalog(dbc)
 
 with open('catalog.json', 'r') as fp:
     items = json.load(fp, encoding="ISO-8859-1")
