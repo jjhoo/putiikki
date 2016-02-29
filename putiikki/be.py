@@ -194,7 +194,7 @@ class Basket(object):
         reservations = self.be.get_reservations(stock_id)
         # can reserve (scount - reservations)
 
-        reservation = self.get_reservation(stock_id)
+        reservation = self.get_reservation(basket_item.id)
         if reservation is not None:
             count += reservation.count
             rcount = min(count, scount - reservations + reservation.count)
@@ -218,11 +218,10 @@ class Basket(object):
         res = q.first()
         return res
 
-    def get_reservation(self, stock_id):
-        q = self.be.session.query(models.Stock, models.Basket, models.BasketItem, models.Reservation).\
+    def get_reservation(self, basket_item_id):
+        q = self.be.session.query(models.Basket, models.BasketItem, models.Reservation).\
           with_entities(models.Reservation).\
-          filter(models.Stock.id == stock_id).\
-          filter(models.Stock.id == models.BasketItem.stock).\
+          filter(models.BasketItem.id == basket_item_id).\
           filter(models.BasketItem.id == models.Reservation.basket_item)
         res = q.first()
         return res
