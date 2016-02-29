@@ -111,6 +111,7 @@ class Catalog(object):
                 q = self.session.query(models.Item, models.Category,
                                        models.ItemCategory).\
                   with_entities(models.Item).\
+                  filter(models.Item.id == item_id).\
                   filter(models.Item.id == models.ItemCategory.item).\
                   filter(models.Category.id == models.ItemCategory.category).\
                   filter(models.Category.name == cat)
