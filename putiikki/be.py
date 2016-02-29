@@ -41,6 +41,12 @@ class BE(object):
             return None
         return (item.id, item.code, item.description, item.long_description)
 
+    def remove_item(self, code, commit=False):
+        q = self.session.query(models.Item).filter(models.Item.code==code).\
+          delete()
+        if commit:
+            self.session.commit()
+
     def get_stock(self, code):
         q = self.session.query(models.Item, models.Stock).\
           with_entities(models.Stock).\
