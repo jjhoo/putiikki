@@ -43,7 +43,7 @@ basket2.add_item('SIEMENP_CAPBACC_LEMONDROP20', 1)
 basket2.add_item('SIEMENP_CAPBACC_LEMONDROP20', 1)
 basket2.dump(sys.stdout)
 
-be.remove_item('SIEMENP_CAPBACC_LEMONDROP5', commit=True)
+be.remove_item('SIEMENP_CAPBACC_LEMONDROP5')
 print("Basket 1 %s" % session_id)
 basket.dump(sys.stdout)
 print("Basket 2 %s" % session2_id)

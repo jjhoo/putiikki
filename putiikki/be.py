@@ -8,44 +8,50 @@ from sqlalchemy.engine.url import URL
 from . import models
 
 def db_connect(settings):
-    return sqla.create_engine(URL(**settings['DB_ENGINE']))
+    return sqla.create_engine(URL(**settings['DB_ENGINE']),
+                              isolation_level='SERIALIZABLE')
 
 class Catalog(object):
     def __init__(self, engine):
         self.engine = engine
         self.session = Session(bind=self.engine)
 
-    def add_item(self, code, description, long_description):
+    def add_item(self, code, description, long_description=None):
+        self.session.begin(subtransactions=True)
         citem = models.Item(code=code,
                             description=description,
                             long_description=long_description)
         self.session.add(citem)
+        self.session.commit()
         return citem
 
     def add_category(self, name):
+        self.session.begin(subtransactions=True)
         cater = models.Category(name=name)
         self.session.add(cater)
+        self.session.commit()
         return cater
 
     def add_item_category(self, item_id, category_id, primary=False):
+        self.session.begin(subtransactions=True)
         catitem = models.ItemCategory(item=item_id, category=category_id,
                                       primary=primary)
         self.session.add(catitem)
+        self.session.commit()
         return catitem
 
     def get_item(self, code):
-        q = self.session.query(models.Item).\
-          filter(models.Item.code == code)
+        q = self.session.query(models.Item).filter(models.Item.code == code)
         item = q.first()
         if item is None:
             return None
         return (item.id, item.code, item.description, item.long_description)
 
-    def remove_item(self, code, commit=False):
-        q = self.session.query(models.Item).filter(models.Item.code==code).\
+    def remove_item(self, code):
+        self.session.begin(subtransactions=True)
+        q = self.session.query(models.Item).filter(models.Item.code == code).\
           delete()
-        if commit:
-            self.session.commit()
+        self.session.commit()
 
     def get_stock(self, code):
         q = self.session.query(models.Item, models.Stock).\
@@ -69,6 +75,7 @@ class Catalog(object):
               filter(models.Item.code == code).\
               filter(models.Item.id == models.Stock.item)
 
+        self.session.begin(subtransactions=True)
         if q.count() == 0:
             stock = models.Stock(item=item_id, count=count, price=price)
             self.session.add(stock)
@@ -76,8 +83,11 @@ class Catalog(object):
             stock = q.first()
             stock.count += count
             stock.price = price
+        self.session.commit()
 
     def add_items(self, items):
+        self.session.begin(subtransactions=True)
+
         categories = []
         for item in items:
             # KeyErrors not caught if missing required field
@@ -137,12 +147,14 @@ class Catalog(object):
 
     # Basket related methods
     def create_basket(self, session):
+        self.session.begin(subtransactions=True)
         basket = models.Basket(session=session)
         self.session.add(basket)
         self.session.flush()
         self.session.refresh(basket)
         self.session.commit()
 
+        self.session.commit()
         return Basket(self, basket.id)
 
     def get_basket(self, session):
@@ -171,6 +183,8 @@ class Basket(object):
         self.id = basket_id
 
     def add_item(self, code, count):
+        self.be.session.begin(subtransactions=True)
+
         item = self.be.get_item(code)
         if item is None:
             raise ValueError('Unknown code')
@@ -206,7 +220,6 @@ class Basket(object):
                                             basket_item=basket_item.id,
                                             count=rcount)
             self.be.session.add(reservation)
-
         self.be.session.commit()
 
     def get_item(self, stock_id):
