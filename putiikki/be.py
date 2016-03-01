@@ -1,5 +1,8 @@
 # coding: utf8
 #
+
+"""SQLAlchemy based management of a Web Shop catalog and Baskets"""
+
 # Copyright (c) 2016 Jani J. Hakala <jjhakala@gmail.com> Jyväskylä, Finland
 #
 #  This program is free software: you can redistribute it and/or modify
@@ -24,6 +27,8 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.engine.url import URL
 
 from . import models
+
+__all__ = ['db_connect', 'Catalog', 'Basket']
 
 def db_connect(settings):
     return sqla.create_engine(URL(**settings['DB_ENGINE']),
@@ -296,7 +301,7 @@ class Catalog(object):
         res = [x for x in q]
         return res
 
-    # Basket related methods
+# Basket related methods
     def create_basket(self, session):
         self.session.begin(subtransactions=True)
         basket = models.Basket(session=session)
