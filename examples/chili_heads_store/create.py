@@ -82,8 +82,23 @@ basket.add_item('SIEMENP_CAPBACC_LEMONDROP5', 5)
 basket.add_item('SIEMENP_CAPBACC_LEMONDROP20', 1)
 basket.add_item('SIEMENP_CAPBACC_LEMONDROP20', 1)
 basket.add_item('SIEMENP_CAPBACC_LEMONDROP20', 8)
+basket.add_item('SIEMENP_CAPANN_PADRON20', 1)
+basket.add_item('SIEMENP_CAPCHIN_NAGA5', 1)
 
 basket.dump(sys.stdout)
+print("")
+
+print("Test basket item ordering")
+items = basket.list_items(sort_key='description', ascending=True)
+for x in items:
+    print(x)
+print("")
+
+print("Test basket item ordering, by price")
+items = basket.list_items(sort_key='price', ascending=True)
+for x in items:
+    print(x)
+print("")
 
 session2_id = str(uuid.uuid4())
 print("Basket 2 %s" % session2_id)
@@ -92,13 +107,18 @@ basket2.add_item('SIEMENP_CAPBACC_LEMONDROP5', 16)
 basket2.add_item('SIEMENP_CAPBACC_LEMONDROP20', 1)
 basket2.add_item('SIEMENP_CAPBACC_LEMONDROP20', 1)
 basket2.dump(sys.stdout)
+print("")
 
 be.remove_item('SIEMENP_CAPBACC_LEMONDROP5')
 print("Basket 1 %s" % session_id)
 basket.dump(sys.stdout)
+print("")
+
 print("Basket 2 %s" % session2_id)
 basket2.dump(sys.stdout)
+print("")
 
 be.update_item('SIEMENP_CAPBACC_LEMONDROP20', description="asdf")
 print("Basket 2 %s" % session2_id)
 basket2.dump(sys.stdout)
+print("")

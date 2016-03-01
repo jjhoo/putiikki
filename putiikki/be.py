@@ -376,14 +376,23 @@ class Basket(object):
         res = q.first()
         return res
 
-    def dump(self, fp):
+    def list_items(self, sort_key='description', ascending=True):
         q = self.be.session.query(
-            models.Item, models.Stock, models.Basket, models.BasketItem, models.Reservation).\
-            with_entities(models.Item.description, models.Stock.price, models.Stock.count, models.BasketItem.count, models.Reservation.count).\
-            filter(models.Basket.id == self.id).\
-            filter(models.Basket.id == models.BasketItem.basket).\
-            filter(models.Stock.id == models.BasketItem.stock).\
-            filter(models.Item.id == models.Stock.item).\
-            filter(models.BasketItem.id == models.Reservation.basket_item)
-        for x in q:
+            models.Item, models.Stock, models.Basket,
+            models.BasketItem, models.Reservation).\
+            with_entities(models.Item.description, models.Stock.price,
+                          models.Stock.count, models.BasketItem.count,
+                          models.Reservation.count).\
+            filter(models.Basket.id == self.id,
+                   models.Basket.id == models.BasketItem.basket,
+                   models.Stock.id == models.BasketItem.stock,
+                   models.Item.id == models.Stock.item,
+                   models.BasketItem.id == models.Reservation.basket_item)
+        q = ordering(q, ascending, sort_key)
+        res = [x for x in q]
+        return res
+
+    def dump(self, fp):
+        items = self.list_items()
+        for x in items:
             fp.write(repr(x) + "\n")
