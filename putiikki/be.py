@@ -71,6 +71,9 @@ class Catalog(object):
         self.session.commit()
         return cater
 
+    # def remove_category
+    # def rename_category
+
     def add_item_category(self, item_id, category_id, primary=False):
         self.session.begin(subtransactions=True)
         catitem = models.ItemCategory(item=item_id, category=category_id,
@@ -78,6 +81,8 @@ class Catalog(object):
         self.session.add(catitem)
         self.session.commit()
         return catitem
+
+    # def remove_item_category
 
     def get_item(self, code):
         q = self.session.query(models.Item).filter(models.Item.code == code)
@@ -240,6 +245,7 @@ class Catalog(object):
 
     def list_items_by_prices(self, prices, sort_key='price', prefix=None,
                              ascending=True, page=1, page_size=10):
+        # TODO: check if possible to group using SQL
         def start():
             q = self.session.query(models.Item,
                                    models.Category,
@@ -375,6 +381,8 @@ class Basket(object):
           filter(models.BasketItem.id == models.Reservation.basket_item)
         res = q.first()
         return res
+
+    # def get_total -- return value of the basket
 
     def list_items(self, sort_key='description', ascending=True):
         q = self.be.session.query(
