@@ -84,6 +84,10 @@ def pagination(q, page, page_size):
         raise ValueError("Invalid page")
     return q
 
+def item_to_json(code, description, category, price, count):
+    return {'code': code, 'description': description,
+            'category': category, 'price': price, 'count': count }
+
 class Catalog(object):
     def __init__(self, engine):
         self.engine = engine
@@ -254,7 +258,7 @@ class Catalog(object):
         q = ordering(q, ascending, sort_key)
         q = pagination(q, page, page_size)
 
-        res = [x for x in q]
+        res = [item_to_json(*x) for x in q]
         return res
 
     def search_items(self, prefix, price_range, sort_key='description',
@@ -274,7 +278,7 @@ class Catalog(object):
         q = ordering(q, ascending, sort_key)
         q = pagination(q, page, page_size)
 
-        res = [x for x in q]
+        res = [item_to_json(*x) for x in q]
         return res
 
     def list_items_by_prices(self, prices, sort_key='price', prefix=None,
@@ -298,7 +302,11 @@ class Catalog(object):
 
         q = pg_ordering(q, ascending)
         q = pagination(q, page, page_size)
-        res = [x for x in q]
+        def to_dict(x):
+            tmp = item_to_json(*x[1:])
+            tmp.update({'price_group': x[0]})
+            return tmp
+        res = [to_dict(x) for x in q]
         return res
 
 # Basket related methods
@@ -402,8 +410,8 @@ class Basket(object):
         q = self.be.session.query(
             models.Item, models.Stock, models.Basket,
             models.BasketItem, models.Reservation).\
-            with_entities(models.Item.description, models.Stock.price,
-                          models.Stock.count, models.BasketItem.count,
+            with_entities(models.Item.code, models.Item.description,
+                          models.Stock.price, models.BasketItem.count,
                           models.Reservation.count).\
             filter(models.Basket.id == self.id,
                    models.Basket.id == models.BasketItem.basket,
@@ -411,7 +419,10 @@ class Basket(object):
                    models.Item.id == models.Stock.item,
                    models.BasketItem.id == models.Reservation.basket_item)
         q = ordering(q, ascending, sort_key)
-        res = [x for x in q]
+        def to_dict(x):
+            return { 'code': x[0], 'description': x[1], 'price': x[2],
+                     'count': x[3], 'reserved': x[4] }
+        res = [to_dict(x) for x in q]
         return res
 
     def list_items_by_prices(self, prices, sort_key='price', prefix=None,
