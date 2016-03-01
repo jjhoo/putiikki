@@ -62,14 +62,11 @@ for x in be.search_items(prefix='', price_range=(2.0, 5.0),
 print("")
 
 print("by price groups")
-res = be.list_items_by_prices(prices=[('<', 2.0), ('>=', 2.0)],
+res = be.list_items_by_prices(prices=[('<', 2.0), (2.0, 4.99), ('>=', 5.0)],
                               sort_key='price', ascending=True,
                               page=1, page_size=50)
-for n, (x, y) in enumerate(res, 1):
-    print('Price group {:d}'.format(n))
-    for item in y:
-        print(item)
-    print("")
+for x in res:
+    print(x)
 print("")
 
 session_id = str(uuid.uuid4())

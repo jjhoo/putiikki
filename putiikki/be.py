@@ -43,13 +43,33 @@ def ordering(q, ascending, sort_key):
         raise ValueError("Invalid key")
     return q
 
+def pg_cases(prices):
+    cases = []
+    i = 1
+    for price_def in prices:
+        if price_def[0] == '<':
+            case = (models.Stock.price < price_def[1], i)
+        elif price_def[0] == '<=':
+            case = (models.Stock.price <= price_def[1], i)
+        elif price_def[0] == '>':
+            case = (models.Stock.price > price_def[1], i)
+        elif price_def[0] == '>=':
+            case = (models.Stock.price >= price_def[1], i)
+        else:
+            case = (models.Stock.price.between(*price_def), i)
+        cases.append(case)
+        i += 1
+    return cases
+
 def pg_ordering(q, ascending):
     if ascending:
         order = sqla.asc
     else:
         order = sqla.desc
 
-    q = q.order_by('price_group').order_by(order(models.Stock.price))
+    q = q.order_by(sqla.asc('price_group')).\
+      order_by(order(models.Stock.price)).\
+      order_by(sqla.asc(models.Item.description))
     return q
 
 def pagination(q, page, page_size):
@@ -254,46 +274,26 @@ class Catalog(object):
 
     def list_items_by_prices(self, prices, sort_key='price', prefix=None,
                              ascending=True, page=1, page_size=10):
-        # TODO: check if possible to group using SQL
-        def start():
-            q = self.session.query(models.Item,
-                                   models.Category,
-                                   models.ItemCategory,
-                                   models.Stock).\
-              with_entities(models.Item.code, models.Item.description,
-                            models.Category.name, models.Stock.price,
-                            models.Stock.count)
-            if prefix is not None:
-                q = q.filter(models.Item.description.like('{:s}%'.format(prefix)))
-            return q
+        pgs = pg_cases(prices)
+        pg_case = sqla.case(pgs, else_ = 0).label('price_group')
+        q = self.session.query(models.Item, models.Category,
+                               models.ItemCategory, models.Stock).\
+                               with_entities(pg_case, models.Item.code,
+                                             models.Item.description,
+                                             models.Category.name,
+                                             models.Stock.price,
+                                             models.Stock.count)
+        if prefix is not None:
+            q = q.filter(models.Item.description.like('{:s}%'.format(prefix)))
 
-        def rest(q):
-            q = q.filter(models.Item.id == models.Stock.item,
-                         models.ItemCategory.item == models.Item.id,
-                         models.ItemCategory.category == models.Category.id,
-                         models.ItemCategory.primary == True)
-            return q
+        q = q.filter(models.Item.id == models.Stock.item,
+                     models.ItemCategory.item == models.Item.id,
+                     models.ItemCategory.category == models.Category.id,
+                     models.ItemCategory.primary == True)
 
-        res = []
-        for price_def in prices:
-            q = start()
-            if price_def[0] == '<':
-                q = q.filter(models.Stock.price < price_def[1])
-            elif price_def[0] == '<=':
-                q = q.filter(models.Stock.price <= price_def[1])
-            elif price_def[0] == '>':
-                q = q.filter(models.Stock.price > price_def[1])
-            elif price_def[0] == '>=':
-                q = q.filter(models.Stock.price >= price_def[1])
-            else:
-                q = q.filter(models.Stock.price.between(*price_def))
-            q = rest(q)
-            q = ordering(q, ascending, sort_key)
-            # may not work as intended?
-            q = pagination(q, page, page_size)
-
-            res2 = [x for x in q]
-            res.append((price_def, res2))
+        q = pg_ordering(q, ascending)
+        q = pagination(q, page, page_size)
+        res = [x for x in q]
         return res
 
     # Basket related methods
@@ -411,27 +411,13 @@ class Basket(object):
 
     def list_items_by_prices(self, prices, sort_key='price', prefix=None,
                              ascending=True):
-        cases = []
-        i = 1
-        for price_def in prices:
-            if price_def[0] == '<':
-                case = (models.Stock.price < price_def[1], i)
-            elif price_def[0] == '<=':
-                case = (models.Stock.price <= price_def[1], i)
-            elif price_def[0] == '>':
-                case = (models.Stock.price > price_def[1], i)
-            elif price_def[0] == '>=':
-                case = (models.Stock.price >= price_def[1], i)
-            else:
-                case = (models.Stock.price.between(*price_def), i)
-            cases.append(case)
-            i += 1
+        cases = pg_cases(prices)
+        pg_case = sqla.case(cases, else_ = 0).label('price_group')
 
         q = self.be.session.query(
             models.Item, models.Stock, models.Basket,
             models.BasketItem, models.Reservation).\
-            with_entities(sqla.case(cases, else_ = 0).label('price_group'),
-                          models.Item.description, models.Stock.price,
+            with_entities(pg_case, models.Item.description, models.Stock.price,
                           models.Stock.count, models.BasketItem.count,
                           models.Reservation.count).\
             filter(models.Basket.id == self.id,
