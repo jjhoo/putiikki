@@ -100,6 +100,12 @@ for x in items:
     print(x)
 print("")
 
+print("Test basket item ordering, by price groups")
+items = basket.list_items_by_prices(prices=[('>=', 2.0), ('<', 2.0)])
+for x in items:
+    print(x)
+print("")
+
 session2_id = str(uuid.uuid4())
 print("Basket 2 %s" % session2_id)
 basket2 = be.create_basket(session2_id)

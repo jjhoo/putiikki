@@ -43,6 +43,15 @@ def ordering(q, ascending, sort_key):
         raise ValueError("Invalid key")
     return q
 
+def pg_ordering(q, ascending):
+    if ascending:
+        order = sqla.asc
+    else:
+        order = sqla.desc
+
+    q = q.order_by('price_group').order_by(order(models.Stock.price))
+    return q
+
 def pagination(q, page, page_size):
     if page >= 1:
         q = q.limit(page_size).offset((page - 1) * page_size)
@@ -397,6 +406,40 @@ class Basket(object):
                    models.Item.id == models.Stock.item,
                    models.BasketItem.id == models.Reservation.basket_item)
         q = ordering(q, ascending, sort_key)
+        res = [x for x in q]
+        return res
+
+    def list_items_by_prices(self, prices, sort_key='price', prefix=None,
+                             ascending=True):
+        cases = []
+        i = 1
+        for price_def in prices:
+            if price_def[0] == '<':
+                case = (models.Stock.price < price_def[1], i)
+            elif price_def[0] == '<=':
+                case = (models.Stock.price <= price_def[1], i)
+            elif price_def[0] == '>':
+                case = (models.Stock.price > price_def[1], i)
+            elif price_def[0] == '>=':
+                case = (models.Stock.price >= price_def[1], i)
+            else:
+                case = (models.Stock.price.between(*price_def), i)
+            cases.append(case)
+            i += 1
+
+        q = self.be.session.query(
+            models.Item, models.Stock, models.Basket,
+            models.BasketItem, models.Reservation).\
+            with_entities(sqla.case(cases, else_ = 0).label('price_group'),
+                          models.Item.description, models.Stock.price,
+                          models.Stock.count, models.BasketItem.count,
+                          models.Reservation.count).\
+            filter(models.Basket.id == self.id,
+                   models.Basket.id == models.BasketItem.basket,
+                   models.Stock.id == models.BasketItem.stock,
+                   models.Item.id == models.Stock.item,
+                   models.BasketItem.id == models.Reservation.basket_item)
+        q = pg_ordering(q, ascending)
         res = [x for x in q]
         return res
 
