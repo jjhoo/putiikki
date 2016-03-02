@@ -1,11 +1,8 @@
 import sqlalchemy as sqla
 from sqlalchemy import Column, Boolean, DateTime, Integer, Numeric, String, \
-    CheckConstraint, ForeignKey, UniqueConstraint
+    CheckConstraint, ForeignKey, UniqueConstraint, TEXT
 
 from sqlalchemy.ext.declarative import declarative_base
-
-# varchar or text type? no truncation with text, common enough?
-from sqlalchemy.dialects.postgresql import TEXT
 
 import datetime
 
