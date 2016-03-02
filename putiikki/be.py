@@ -114,7 +114,7 @@ class Catalog(object):
 
     def add_item_category(self, item_id, category_id, primary=False):
         self.session.begin(subtransactions=True)
-        catitem = models.ItemCategory(item=item_id, category=category_id,
+        catitem = models.ItemCategory(item_id=item_id, category_id=category_id,
                                       primary=primary)
         self.session.add(catitem)
         self.session.commit()
@@ -220,8 +220,8 @@ class Catalog(object):
                                        models.ItemCategory).\
                   with_entities(models.Item).\
                   filter(models.Item.id == item_id).\
-                  filter(models.Item.id == models.ItemCategory.item).\
-                  filter(models.Category.id == models.ItemCategory.category).\
+                  filter(models.Item.id == models.ItemCategory.item_id).\
+                  filter(models.Category.id == models.ItemCategory.category_id).\
                   filter(models.Category.name == cat)
 
                 if q.count() > 0:
@@ -243,6 +243,48 @@ class Catalog(object):
 
         self.session.commit()
 
+    def add_items_test(self, items):
+        self.session.begin(subtransactions=True)
+
+        for item in items:
+            # KeyErrors not caught if missing required field
+
+            try:
+                long_desc = item['long description']
+            except KeyError:
+                long_desc = None
+
+            q = self.session.query(models.Item).\
+              filter(models.Item.code == item['code'])
+
+            if q.count() == 0:
+                citem = self.add_item(item['code'], item['description'],
+                                      long_desc)
+                try:
+                    primary = True
+                    for c in item['categories']:
+                        item_cater = models.ItemCategory(primary=primary)
+                        q = self.session.query(models.Category).\
+                          filter(models.Category.name == c)
+                        if q.count() == 0:
+                            item_cater.category = models.Category(name=c)
+                        else:
+                            item_cater.category = q.first()
+
+                        citem.categories.append(item_cater)
+                        primary = False
+                except KeyError:
+                    pass
+                # needed to have up to date Id field
+                self.session.flush()
+                self.session.refresh(citem)
+            else:
+                citem = q.first()
+            self.update_stock(item['code'], item['count'], item['price'],
+                              citem.id)
+
+        self.session.commit()
+
     def list_items(self, sort_key='description',
                    ascending=True, page=1, page_size=10):
         q = self.session.query(models.Item, models.Category,
@@ -251,8 +293,8 @@ class Catalog(object):
                         models.Category.name, models.Stock.price,
                         models.Stock.count).\
           filter(models.Item.id == models.Stock.item).\
-          filter(models.ItemCategory.item == models.Item.id).\
-          filter(models.ItemCategory.category == models.Category.id).\
+          filter(models.ItemCategory.item_id == models.Item.id).\
+          filter(models.ItemCategory.category_id == models.Category.id).\
           filter(models.ItemCategory.primary == True)
 
         q = ordering(q, ascending, sort_key)
@@ -271,8 +313,8 @@ class Catalog(object):
           filter(models.Stock.price.between(*price_range),
                  models.Item.id == models.Stock.item,
                  models.Item.description.like('{:s}%'.format(prefix)),
-                 models.ItemCategory.item == models.Item.id,
-                 models.ItemCategory.category == models.Category.id,
+                 models.ItemCategory.item_id == models.Item.id,
+                 models.ItemCategory.category_id == models.Category.id,
                  models.ItemCategory.primary == True)
 
         q = ordering(q, ascending, sort_key)
@@ -296,8 +338,8 @@ class Catalog(object):
             q = q.filter(models.Item.description.like('{:s}%'.format(prefix)))
 
         q = q.filter(models.Item.id == models.Stock.item,
-                     models.ItemCategory.item == models.Item.id,
-                     models.ItemCategory.category == models.Category.id,
+                     models.ItemCategory.item_id == models.Item.id,
+                     models.ItemCategory.category_id == models.Category.id,
                      models.ItemCategory.primary == True,
                      pg_case >= 0)
 
@@ -363,7 +405,8 @@ class Basket(object):
         # Need to check if already in basket
         basket_item = self.get_item(stock_id)
         if basket_item is None:
-            basket_item = models.BasketItem(basket=self.id, stock=stock_id,
+            basket_item = models.BasketItem(basket_id=self.id,
+                                            stock=stock_id,
                                             count=count)
             self.be.session.add(basket_item)
             self.be.session.flush()
@@ -382,8 +425,8 @@ class Basket(object):
         else:
             rcount = min(count, scount - reservations)
             reservation = models.Reservation(stock=stock_id,
-                                            basket_item=basket_item.id,
-                                            count=rcount)
+                                             basket_item=basket_item.id,
+                                             count=rcount)
             self.be.session.add(reservation)
         self.be.session.commit()
 
@@ -392,7 +435,7 @@ class Basket(object):
           with_entities(models.BasketItem).\
                   filter(models.Stock.id == stock_id).\
                   filter(models.Basket.id == self.id).\
-                  filter(models.Basket.id == models.BasketItem.basket).\
+                  filter(models.Basket.id == models.BasketItem.basket_id).\
                   filter(models.Stock.id == models.BasketItem.stock)
         res = q.first()
         return res
@@ -415,7 +458,7 @@ class Basket(object):
                           models.Stock.price, models.BasketItem.count,
                           models.Reservation.count).\
             filter(models.Basket.id == self.id,
-                   models.Basket.id == models.BasketItem.basket,
+                   models.Basket.id == models.BasketItem.basket_id,
                    models.Stock.id == models.BasketItem.stock,
                    models.Item.id == models.Stock.item,
                    models.BasketItem.id == models.Reservation.basket_item)
@@ -439,7 +482,7 @@ class Basket(object):
                           models.Stock.count, models.BasketItem.count,
                           models.Reservation.count).\
             filter(models.Basket.id == self.id,
-                   models.Basket.id == models.BasketItem.basket,
+                   models.Basket.id == models.BasketItem.basket_id,
                    models.Stock.id == models.BasketItem.stock,
                    models.Item.id == models.Stock.item,
                    models.BasketItem.id == models.Reservation.basket_item,

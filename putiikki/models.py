@@ -1,8 +1,9 @@
 import sqlalchemy as sqla
 from sqlalchemy import Column, Boolean, DateTime, Integer, Numeric, String, \
-    CheckConstraint, ForeignKey, UniqueConstraint, TEXT
+    CheckConstraint, ForeignKey, UniqueConstraint, TEXT, Table
 
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, backref
 
 import datetime
 
@@ -18,6 +19,7 @@ class Item(Base):
     # (language, short_description, description)
     description = Column(TEXT, nullable=False)
     long_description = Column(TEXT, nullable=True)
+    categories = relationship("ItemCategory")
 
     __table_args__ = (CheckConstraint('char_length(code) >= 4'),
                       CheckConstraint('char_length(description) >= 4'),)
@@ -32,19 +34,18 @@ class Category(Base):
 
 class ItemCategory(Base):
     __tablename__ = 'item_categories'
-
-    id = Column(Integer, primary_key=True)
-    item = Column(Integer,
-                  ForeignKey("items.id",
-                             onupdate="CASCADE", ondelete="CASCADE"),
-                  nullable=False)
-    category = Column(Integer,
-                      ForeignKey("categories.id",
-                                 onupdate="CASCADE", ondelete="CASCADE"),
-                      nullable=False)
+    item_id = Column(Integer,
+                     ForeignKey("items.id",
+                                onupdate="CASCADE", ondelete="CASCADE"),
+                     primary_key=True)
+    category_id = Column(Integer,
+                         ForeignKey("categories.id",
+                                    onupdate="CASCADE", ondelete="CASCADE"),
+                         primary_key=True)
     primary = Column(Boolean, default=False, nullable=False)
+    category = relationship("Category")
 
-    __table_args__ = (UniqueConstraint('item', 'category'),)
+    __table_args__ = (UniqueConstraint('item_id', 'category_id'),)
 
 class Stock(Base):
     __tablename__ = 'stocks'
@@ -64,7 +65,7 @@ class Stock(Base):
                       CheckConstraint('price >= 0.0'), )
 
 class Basket(Base):
-    __tablename__ = 'baskets'
+    __tablename__ = 'basket'
     id = Column(Integer, primary_key=True)
     # session cookie... could be a reference to Session table
     session = Column(TEXT, nullable=False)
@@ -74,13 +75,15 @@ class Basket(Base):
     modification = Column(DateTime, default=datetime.datetime.utcnow,
                           nullable=False)
 
+    basket_items = relationship("BasketItem", back_populates="basket")
+
 class BasketItem(Base):
     __tablename__ = 'basket_items'
     id = Column(Integer, primary_key=True)
-    basket = Column(Integer,
-                    ForeignKey("baskets.id",
-                                onupdate="CASCADE", ondelete="CASCADE"),
-                    nullable=False)
+    basket_id = Column(Integer,
+                       ForeignKey("basket.id",
+                                  onupdate="CASCADE", ondelete="CASCADE"),
+                       nullable=False)
     stock = Column(Integer,
                    ForeignKey("stocks.id",
                               onupdate="CASCADE", ondelete="CASCADE"),
@@ -93,7 +96,10 @@ class BasketItem(Base):
     modification = Column(DateTime, default=datetime.datetime.utcnow,
                           nullable=False)
 
-    __table_args__ = (CheckConstraint('count >= 0'),)
+    basket = relationship("Basket", back_populates="basket_items")
+
+    __table_args__ = (CheckConstraint('count >= 0'),
+                      UniqueConstraint('basket_id', 'stock'))
 
 class Reservation(Base):
     __tablename__ = 'reservations'
