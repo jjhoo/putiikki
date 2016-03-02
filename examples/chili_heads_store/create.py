@@ -19,6 +19,31 @@ from putiikki import be, models
 import json
 import uuid
 import sys
+from prettytable import PrettyTable
+
+def print_items(items):
+    table = PrettyTable(['description', 'price', 'count'])
+    table.align = 'r'
+    for item in items:
+        table.add_row([item['description'], item['price'], item['count']])
+    print(table)
+
+def print_items_pg(items):
+    table = PrettyTable(['price group', 'description', 'price', 'count'])
+    table.align = 'r'
+    for item in items:
+        table.add_row([item['price_group'], item['description'],
+                       item['price'], item['count']])
+    print(table)
+
+def print_basket(items):
+    table = PrettyTable(['description', 'price', 'count', 'reserved'])
+    table.align = 'r'
+    items = basket.list_items()
+    for item in items:
+        table.add_row([item['description'], item['price'],
+                       item['count'], item['reserved']])
+    print(table)
 
 with open('settings.json', 'r') as fp:
     settings = json.load(fp, encoding="UTF-8")
@@ -40,34 +65,29 @@ print(be.get_item('SIEMENP_CAPBACC_LEMONDROP20'))
 print(be.get_stock('SIEMENP_CAPBACC_LEMONDROP20'))
 
 print("page 1")
-for x in be.list_items('description', ascending=True, page=1, page_size=5):
-    print(x)
+items = be.list_items('description', ascending=True, page=1, page_size=5)
+print_items(items)
 
 print("page 2")
-for x in be.list_items('description', ascending=True, page=2, page_size=5):
-    print(x)
-print("")
+items = be.list_items('description', ascending=True, page=2, page_size=5)
+print_items(items)
 
 print("by prefix and price range")
-for x in be.search_items(prefix='Aji', price_range=(0.0, 2.0),
-                         sort_key='price', ascending=True,
-                         page=1, page_size=50):
-    print(x)
-print("")
+items = be.search_items(prefix='Aji', price_range=(0.0, 2.0),
+                        sort_key='price', ascending=True,
+                        page=1, page_size=50)
+print_items(items)
 
-for x in be.search_items(prefix='', price_range=(2.0, 5.0),
-                         sort_key='price', ascending=True,
-                         page=1, page_size=50):
-    print(x)
-print("")
+items = be.search_items(prefix='', price_range=(2.0, 5.0),
+                        sort_key='price', ascending=True,
+                        page=1, page_size=50)
+print_items(items)
 
 print("by price groups")
-res = be.list_items_by_prices(prices=[('<', 2.0), (2.0, 4.99), ('>=', 5.0)],
-                              sort_key='price', ascending=True,
-                              page=1, page_size=50)
-for x in res:
-    print(x)
-print("")
+items = be.list_items_by_prices(prices=[('<', 2.0), (2.0, 4.99), ('>=', 5.0)],
+                                sort_key='price', ascending=True,
+                                page=1, page_size=50)
+print_items_pg(items)
 
 session_id = str(uuid.uuid4())
 print("Basket 1 %s" % session_id)
@@ -81,26 +101,22 @@ basket.add_item('SIEMENP_CAPBACC_LEMONDROP20', 1)
 basket.add_item('SIEMENP_CAPBACC_LEMONDROP20', 8)
 basket.add_item('SIEMENP_CAPANN_PADRON20', 1)
 basket.add_item('SIEMENP_CAPCHIN_NAGA5', 1)
-
-basket.dump(sys.stdout)
+print_basket(items)
 print("")
 
 print("Test basket item ordering")
 items = basket.list_items(sort_key='description', ascending=True)
-for x in items:
-    print(x)
+print_basket(items)
 print("")
 
 print("Test basket item ordering, by price")
 items = basket.list_items(sort_key='price', ascending=True)
-for x in items:
-    print(x)
+print_basket(items)
 print("")
 
 print("Test basket item ordering, by price groups")
 items = basket.list_items_by_prices(prices=[('>=', 2.0), ('<', 2.0)])
-for x in items:
-    print(x)
+print_basket(items)
 print("")
 
 session2_id = str(uuid.uuid4())
@@ -109,19 +125,22 @@ basket2 = be.create_basket(session2_id)
 basket2.add_item('SIEMENP_CAPBACC_LEMONDROP5', 16)
 basket2.add_item('SIEMENP_CAPBACC_LEMONDROP20', 1)
 basket2.add_item('SIEMENP_CAPBACC_LEMONDROP20', 1)
-basket2.dump(sys.stdout)
+print_basket(basket2.list_items())
+print("")
+
+print("Remove item from inventory")
 print("")
 
 be.remove_item('SIEMENP_CAPBACC_LEMONDROP5')
 print("Basket 1 %s" % session_id)
-basket.dump(sys.stdout)
+print_basket(basket.list_items())
 print("")
 
 print("Basket 2 %s" % session2_id)
-basket2.dump(sys.stdout)
+print_basket(basket2.list_items())
 print("")
 
 be.update_item('SIEMENP_CAPBACC_LEMONDROP20', description="asdf")
 print("Basket 2 %s" % session2_id)
-basket2.dump(sys.stdout)
+print_basket(basket.list_items())
 print("")

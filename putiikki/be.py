@@ -434,7 +434,8 @@ class Basket(object):
         q = self.be.session.query(
             models.Item, models.Stock, models.Basket,
             models.BasketItem, models.Reservation).\
-            with_entities(pg_case, models.Item.description, models.Stock.price,
+            with_entities(pg_case, models.Item.code,
+                          models.Item.description, models.Stock.price,
                           models.Stock.count, models.BasketItem.count,
                           models.Reservation.count).\
             filter(models.Basket.id == self.id,
@@ -444,7 +445,10 @@ class Basket(object):
                    models.BasketItem.id == models.Reservation.basket_item,
                    pg_case >= 0)
         q = pg_ordering(q, ascending)
-        res = [x for x in q]
+        def to_dict(x):
+            return { 'price_group': x[0], 'code': x[1], 'description': x[2],
+                     'price': x[3], 'count': x[4], 'reserved': x[5] }
+        res = [to_dict(x) for x in q]
         return res
 
     def dump(self, fp):
