@@ -20,6 +20,7 @@ class Simple(unittest.TestCase):
     def test_create_catalog(self):
         import json
         catalog = be.Catalog(self.eng)
-        with open(os.path.join(MODULE_DIR, 'shop_catalog1.json'), 'r') as fp:
+        with open(os.path.join(MODULE_DIR, 'shop_catalog1.json'), 'r',
+                  encoding="ISO-8859-1") as fp:
             items = json.load(fp, encoding="ISO-8859-1")
             catalog.add_items(items)

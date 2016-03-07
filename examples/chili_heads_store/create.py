@@ -56,7 +56,7 @@ models.create_tables(dbc)
 
 be = be.Catalog(dbc)
 
-with open('catalog.json', 'r') as fp:
+with open('catalog.json', 'r', encoding="ISO-8859-1") as fp:
     items = json.load(fp, encoding="ISO-8859-1")
 
 print(items)
