@@ -1,8 +1,9 @@
 import unittest
 
 import sys
-sys.path.append('..')
 import os
+sys.path.append(os.path.abspath("."))
+sys.path.append(os.path.abspath("../"))
 
 MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
 
