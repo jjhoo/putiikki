@@ -48,15 +48,18 @@ def create_basket(be):
 
 def dispatch(be, json_cmd):
     if json_cmd['module'] == 'catalog':
-        fun = getattr(be, json_cmd['function'])
-
-        res = fun(**json_cmd['args'])
+        obj = be
     elif json_cmd['module'] == 'basket':
-        basket = be.get_basket(json_cmd['session'])
+        obj = be.get_basket(json_cmd['session'])
+    else:
+        return {'status': 'error' , 'value': 'unknown module'}
 
-        fun = getattr(basket, json_cmd['function'])
-        res = fun(**json_cmd['args'])
+    try:
+        fun = getattr(obj, json_cmd['function'])
+    except AttributeError:
+        return {'status': 'error' , 'value': 'unknown function'}
 
+    res = fun(**json_cmd['args'])
     # print(json.dumps(res, **json_options))
     return res
 
