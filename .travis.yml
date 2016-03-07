@@ -13,7 +13,7 @@ before_script:
   - psql -c 'create database putiikki;' -U postgres
 after_success:
   - coverage xml
-  - codecov --token=${COV_TOKEN}
+  - codecov
 addons:
   postgresql: "9.4"
 services:
