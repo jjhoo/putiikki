@@ -13,3 +13,8 @@ Cloning and installing
 Creating the database, assuming that the user account is allowed to create the database
 
     createdb --encoding=UTF8 --locale=en_GB.UTF-8 -T template0 putiikki
+
+
+Travis-ci: [![Build status](https://travis-ci.org/jjhoo/putiikki.svg?branch=master)](https://travis-ci.org/jjhoo/putiikki)
+
+Code coverage: [![codecov.io](https://codecov.io/github/jjhoo/putiikki/coverage.svg?branch=master)](https://codecov.io/github/jjhoo/putiikki?branch=master)
