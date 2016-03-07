@@ -1,0 +1,14 @@
+language: python
+python:
+  - "3.4"
+install:
+  - pip install -r requirements.txt
+  - pip install psycopg2 --quiet
+script: python -m unittest tests/basic.py
+before_script:
+  - psql -c 'create database putiikki;' -U postgres
+
+addons:
+  postgresql: "9.4"
+services:
+  - postgresql

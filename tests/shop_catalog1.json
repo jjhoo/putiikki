@@ -1,0 +1,61 @@
+[ { "code": "SIEMENP_CAPBACC_AJICRISTAL5",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum baccatum"],
+    "description": "Aji cristal siemenpussi 5 siementä",
+    "price": 1.00,
+    "count": 100
+  },
+  { "code": "SIEMENP_CAPBACC_LEMONDROP5",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum baccatum"],
+    "description": "Lemon Drop siemenpussi 5 siementä",
+    "price": 1.50,
+    "count": 20
+  },
+  { "code": "SIEMENP_CAPBACC_AJICRISTAL20",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum baccatum"],
+    "description": "Aji cristal siemenpussi 20 siementä",
+    "price": 3.50,
+    "count": 20
+  },
+  { "code": "SIEMENP_CAPBACC_LEMONDROP20",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum baccatum"],
+    "description": "Lemon Drop siemenpussi 20 siementä",
+    "price": 5.00,
+    "count": 20
+  },
+  { "code": "SIEMENP_CAPANN_PADRON5",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum annuum"],
+    "description": "Pimientos de Padron siemenpussi 5 siementä",
+    "price": 2.00,
+    "count": 40
+  },
+  { "code": "SIEMENP_CAPANN_PADRON20",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum annuum"],
+    "description": "Pimientos de Padron siemenpussi 20 siementä",
+    "price": 9.00,
+    "count": 10
+  },
+  { "code": "SIEMENP_CAPCHIN_NAGA5",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum chinense"],
+    "description": "Naga Morich siemenpussi 5 siementä",
+    "price": 2.00,
+    "count": 40
+  },
+  { "code": "SIEMENP_CAPCHIN_7POT5",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum chinense"],
+    "description": "7pot siemenpussi 5 siementä",
+    "price": 2.00,
+    "count": 40
+  },
+  { "code": "SIEMENP_CAPCHIN_BHUTJ5",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum chinense"],
+    "description": "Bhut Jolokia siemenpussi 5 siementä",
+    "price": 2.00,
+    "count": 40
+  },
+  { "code": "SIEMENP_CAPCHIN_CAJAM5",
+    "categories": ["Siemenpussit :: Chilit :: Capsicum chinense"],
+    "description": "Cajamarca siemenpussi 5 siementä",
+    "price": 2.00,
+    "count": 40
+  }
+]
