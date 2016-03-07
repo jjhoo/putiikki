@@ -24,3 +24,6 @@ class Simple(unittest.TestCase):
                   encoding="ISO-8859-1") as fp:
             items = json.load(fp, encoding="ISO-8859-1")
             catalog.add_items(items)
+
+if __name__ == '__main__':
+    unittest.main()

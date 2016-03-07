@@ -1,13 +1,19 @@
 language: python
 python:
   - "3.4"
+before_install:
+  - pip install codecov --quiet
+  - pip install coverage --quiet
+  - pip install psycopg2 --quiet
 install:
   - pip install -r requirements.txt
-  - pip install psycopg2 --quiet
-script: python -m unittest tests/basic.py
+script:
+  - coverage run tests/basic.py
 before_script:
   - psql -c 'create database putiikki;' -U postgres
-
+after_success:
+  - coverage xml
+  - codecov --token=${COV_TOKEN}
 addons:
   postgresql: "9.4"
 services:
