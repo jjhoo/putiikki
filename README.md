@@ -14,6 +14,7 @@ Creating the database, assuming that the user account is allowed to create the d
 
     createdb --encoding=UTF8 --locale=en_GB.UTF-8 -T template0 putiikki
 
+[API documentation (epydoc)](http://jjhoo.github.io/putiikki/)
 
 Travis-ci: [![Build status](https://travis-ci.org/jjhoo/putiikki.svg?branch=master)](https://travis-ci.org/jjhoo/putiikki)
 
