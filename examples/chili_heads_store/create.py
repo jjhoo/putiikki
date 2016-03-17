@@ -84,7 +84,8 @@ items = be.search_items(prefix='', price_range=(2.0, 5.0),
 print_items(items)
 
 print("by price groups")
-items = be.list_items_by_prices(prices=[('<', 2.0), (2.0, 4.99), ('>=', 5.0)],
+items = be.list_items_by_prices(prices=[('<', 2.0), ('range', 2.0, 4.99),
+                                        ('>=', 5.0)],
                                 sort_key='price', ascending=True,
                                 page=1, page_size=50)
 print_items_pg(items)

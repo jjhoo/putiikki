@@ -52,16 +52,20 @@ def pg_cases(prices):
     cases = []
     i = 0
     for price_def in prices:
-        if price_def[0] == '<':
-            case = (models.Stock.price < price_def[1], i)
-        elif price_def[0] == '<=':
-            case = (models.Stock.price <= price_def[1], i)
-        elif price_def[0] == '>':
-            case = (models.Stock.price > price_def[1], i)
-        elif price_def[0] == '>=':
-            case = (models.Stock.price >= price_def[1], i)
-        else:
-            case = (models.Stock.price.between(*price_def), i)
+        op = price_def[0]
+        a = price_def[1]
+        if op == '<':
+            case = (models.Stock.price < a, i)
+        elif op == '<=':
+            case = (models.Stock.price <= a, i)
+        elif op == '>':
+            case = (models.Stock.price > a, i)
+        elif op == '>=':
+            case = (models.Stock.price >= a, i)
+        elif op == '==':
+            case = (models.Stock.price == a, i)
+        elif op == 'range':
+            case = (models.Stock.price.between(a, price_def[2]), i)
         cases.append(case)
         i += 1
     return cases
