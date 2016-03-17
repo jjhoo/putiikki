@@ -54,7 +54,7 @@ dbc = be.db_connect(settings)
 models.drop_tables(dbc)
 models.create_tables(dbc)
 
-be = be.Catalog(dbc)
+catalog = be.Catalog(dbc)
 
 with open('catalog.json', 'r', encoding="ISO-8859-1") as fp:
     items = json.load(fp, encoding="ISO-8859-1")
@@ -65,51 +65,51 @@ print(items)
 # for item in items:
 #     for x in item['categories']:
 #         categories.add(x)
-# be.add_categories(categories)
-# be.add_items(items)
+# catalog.add_categories(categories)
+# catalog.add_items(items)
 
 # stock = [{'code': x['code'], 'count': x['count'],
 #           'price': x['price']} for x in items]
-# be.add_stock(stock)
+# catalog.add_stock(stock)
 
-# be.session.commit()
-be.add_items_with_stock(items)
+# catalog.session.commit()
+catalog.add_items_with_stock(items)
 
-print(be.get_item('SIEMENP_CAPBACC_LEMONDROP20'))
-print(be.get_stock('SIEMENP_CAPBACC_LEMONDROP20'))
+print(catalog.get_item('SIEMENP_CAPBACC_LEMONDROP20'))
+print(catalog.get_stock('SIEMENP_CAPBACC_LEMONDROP20'))
 
 print("page 1")
-items = be.list_items('description', ascending=True, page=1, page_size=5)
+items = catalog.list_items('description', ascending=True, page=1, page_size=5)
 print_items(items)
 
 print("page 2")
-items = be.list_items('description', ascending=True, page=2, page_size=5)
+items = catalog.list_items('description', ascending=True, page=2, page_size=5)
 print_items(items)
 
 print("by prefix and price range")
-items = be.search_items(prefix='Aji', price_range=(0.0, 2.0),
-                        sort_key='price', ascending=True,
-                        page=1, page_size=50)
+items = catalog.search_items(prefix='Aji', price_range=(0.0, 2.0),
+                             sort_key='price', ascending=True,
+                             page=1, page_size=50)
 print_items(items)
 
-items = be.search_items(prefix='', price_range=(2.0, 5.0),
-                        sort_key='price', ascending=True,
-                        page=1, page_size=50)
+items = catalog.search_items(prefix='', price_range=(2.0, 5.0),
+                             sort_key='price', ascending=True,
+                             page=1, page_size=50)
 print_items(items)
 
 print("by price groups")
-items = be.list_items_by_prices(prices=[('<', 2.0), ('range', 2.0, 4.99),
-                                        ('>=', 5.0)],
-                                sort_key='price', ascending=True,
-                                page=1, page_size=50)
+items = catalog.list_items_by_prices(prices=[('<', 2.0), ('range', 2.0, 4.99),
+                                              ('>=', 5.0)],
+                                     sort_key='price', ascending=True,
+                                     page=1, page_size=50)
 print_items_pg(items)
 
 session_id = str(uuid.uuid4())
 print("Basket 1 %s" % session_id)
-basket = be.create_basket(session_id)
+basket = be.Basket.create(catalog, session_id)
 
 # print(basket)
-# print(be.get_basket(session_id))
+# print(be.Basket.get(session_id))
 basket.add_item('SIEMENP_CAPBACC_LEMONDROP5', 5)
 basket.add_item('SIEMENP_CAPBACC_LEMONDROP20', 1)
 basket.add_item('SIEMENP_CAPBACC_LEMONDROP20', 1)
@@ -136,7 +136,7 @@ print("")
 
 session2_id = str(uuid.uuid4())
 print("Basket 2 %s" % session2_id)
-basket2 = be.create_basket(session2_id)
+basket2 = be.Basket.create(catalog, session2_id)
 basket2.add_item('SIEMENP_CAPBACC_LEMONDROP5', 16)
 basket2.add_item('SIEMENP_CAPBACC_LEMONDROP20', 1)
 basket2.add_item('SIEMENP_CAPBACC_LEMONDROP20', 1)
@@ -146,7 +146,7 @@ print("")
 print("Remove item from inventory")
 print("")
 
-be.remove_item('SIEMENP_CAPBACC_LEMONDROP5')
+catalog.remove_item('SIEMENP_CAPBACC_LEMONDROP5')
 print("Basket 1 %s" % session_id)
 print_basket(basket.list_items())
 print("")
@@ -155,7 +155,7 @@ print("Basket 2 %s" % session2_id)
 print_basket(basket2.list_items())
 print("")
 
-be.update_item('SIEMENP_CAPBACC_LEMONDROP20', description="asdf")
+catalog.update_item('SIEMENP_CAPBACC_LEMONDROP20', description="asdf")
 print("Basket 2 %s" % session2_id)
 print_basket(basket.list_items())
 print("")

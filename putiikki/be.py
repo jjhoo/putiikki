@@ -358,27 +358,6 @@ class Catalog(object):
         res = [to_dict(x) for x in q]
         return res
 
-# Basket related methods
-    def create_basket(self, session):
-        self.session.begin(subtransactions=True)
-        basket = models.Basket(session=session)
-        self.session.add(basket)
-        self.session.flush()
-        self.session.refresh(basket)
-        self.session.commit()
-
-        self.session.commit()
-        return Basket(self, basket.id)
-
-    def get_basket(self, session):
-        q = self.session.query(models.Basket).\
-            filter(models.Basket.session == session)
-        res = q.first()
-        if res is None:
-            return None
-
-        return Basket(self, res.id)
-
     def _get_reservations(self, stock_id):
         q = self.session.query(func.sum(models.Reservation.count)).\
           filter(models.StockItem.id == stock_id).\
@@ -419,18 +398,42 @@ class Catalog(object):
         self.session.commit()
 
 class Basket(object):
-    def __init__(self, be, basket_id):
-        self.be = be
+    def __init__(self, catalog, basket_id):
+        self.catalog = catalog
+        self.session = catalog.session
         self.id = basket_id
 
-    def add_item(self, code, count):
-        self.be.session.begin(subtransactions=True)
+    @staticmethod
+    def get(session, basket_id):
+        q = session.query(models.Basket).\
+            filter(models.Basket.session == basket_id)
+        res = q.first()
+        if res is None:
+            return None
 
-        item = self.be.get_item(code, as_object=True)
+        return Basket(session, res.id)
+
+    @staticmethod
+    def create(catalog, basket_id):
+        session = catalog.session
+
+        session.begin(subtransactions=True)
+        basket = models.Basket(session=basket_id)
+        session.add(basket)
+        session.flush()
+        session.refresh(basket)
+
+        session.commit()
+        return Basket(catalog, basket.id)
+
+    def add_item(self, code, count):
+        self.session.begin(subtransactions=True)
+
+        item = self.catalog.get_item(code, as_object=True)
         if item is None:
             raise ValueError('Unknown code')
 
-        stock = self.be.get_stock(item.code, as_object=True)
+        stock = self.catalog.get_stock(item.code, as_object=True)
         if stock is None:
             raise ValueError('Not in stock')
 
@@ -440,23 +443,23 @@ class Basket(object):
             basket_item = models.BasketItem(basket_id=self.id,
                                             stock_item=stock,
                                             count=count)
-            self.be.session.add(basket_item)
-            self.be.session.flush()
-            self.be.session.refresh(basket_item)
+            self.session.add(basket_item)
+            self.session.flush()
+            self.session.refresh(basket_item)
         else:
             basket_item.count += count
 
-        self.be._update_reservation(stock, basket_item)
-        self.be.session.commit()
+        self.catalog._update_reservation(stock, basket_item)
+        self.session.commit()
 
     def update_item_count(self, code, count):
-        self.be.session.begin(subtransactions=True)
+        self.session.begin(subtransactions=True)
 
-        item = self.be.get_item(code, as_object=True)
+        item = self.catalog.get_item(code, as_object=True)
         if item is None:
             raise ValueError('Unknown item code')
 
-        stock = self.be.get_stock(item.code, as_object=True)
+        stock = self.catalog.get_stock(item.code, as_object=True)
         if stock is None:
             raise ValueError('Item {:s} not in stock'.format(item.code))
 
@@ -465,20 +468,20 @@ class Basket(object):
             raise ValueError('Item {:s} not in basket'.format(item.code))
 
         if count == 0:
-            self.be.session.delete(basket_item)
+            self.session.delete(basket_item)
             # Reservations are automatically deleted (on delete cascade)
-            self.be.session.commit()
+            self.session.commit()
             return
 
         basket_item.count = count
-        self.be._update_reservation(stock, basket_item)
-        self.be.session.commit()
+        self.catalog._update_reservation(stock, basket_item)
+        self.session.commit()
 
     def remove_item(self, code):
         return self.update_item_count(code, 0)
 
     def get_item(self, stock_id):
-        q = self.be.session.query(models.StockItem, models.Basket,
+        q = self.session.query(models.StockItem, models.Basket,
                                   models.BasketItem).\
           with_entities(models.BasketItem).\
                   filter(models.StockItem.id == stock_id).\
@@ -491,7 +494,7 @@ class Basket(object):
     # def get_total -- return value of the basket
 
     def list_items(self, sort_key='description', ascending=True):
-        q = self.be.session.query(
+        q = self.session.query(
             models.Item, models.StockItem, models.Basket,
             models.BasketItem, models.Reservation).\
             with_entities(models.Item.code, models.Item.description,
@@ -514,7 +517,7 @@ class Basket(object):
         cases = pg_cases(prices)
         pg_case = sqla.case(cases, else_ = -1).label('price_group')
 
-        q = self.be.session.query(
+        q = self.session.query(
             models.Item, models.StockItem, models.Basket,
             models.BasketItem, models.Reservation).\
             with_entities(pg_case, models.Item.code,
