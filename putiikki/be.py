@@ -394,8 +394,8 @@ class Catalog(object):
         q = self.session.query(models.Basket, models.BasketItem,
                                models.Reservation).\
           with_entities(models.Reservation).\
-          filter(models.BasketItem.id == basket_item_id,
-                 models.BasketItem.id == models.Reservation.basket_item)
+          join(models.Reservation.basket_item).\
+          filter(models.BasketItem.id == basket_item_id)
         res = q.first()
         return res
 
@@ -413,7 +413,7 @@ class Catalog(object):
         else:
             rcount = min(basket_item.count, stock.count - reservations)
             reservation = models.Reservation(stock_item=stock,
-                                             basket_item=basket_item.id,
+                                             basket_item=basket_item,
                                              count=rcount)
             self.session.add(reservation)
         self.session.commit()
@@ -501,7 +501,7 @@ class Basket(object):
                    models.Basket.id == models.BasketItem.basket_id,
                    models.StockItem.id == models.BasketItem.stock_item_id,
                    models.Item.id == models.StockItem.item_id,
-                   models.BasketItem.id == models.Reservation.basket_item)
+                   models.BasketItem.id == models.Reservation.basket_item_id)
         q = ordering(q, ascending, sort_key)
         def to_dict(x):
             return { 'code': x[0], 'description': x[1], 'price': x[2],
@@ -521,11 +521,11 @@ class Basket(object):
                           models.Item.description, models.StockItem.price,
                           models.StockItem.count, models.BasketItem.count,
                           models.Reservation.count).\
+            join(models.Basket.basket_items).\
+            join(models.Item.stock_item).\
             filter(models.Basket.id == self.id,
-                   models.Basket.id == models.BasketItem.basket_id,
                    models.StockItem.id == models.BasketItem.stock_item_id,
-                   models.Item.id == models.StockItem.item_id,
-                   models.BasketItem.id == models.Reservation.basket_item,
+                   models.BasketItem.id == models.Reservation.basket_item_id,
                    pg_case >= 0)
         q = pg_ordering(q, ascending)
         def to_dict(x):

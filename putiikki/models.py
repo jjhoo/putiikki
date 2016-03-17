@@ -41,8 +41,8 @@ class Item(Base):
     long_description = Column(TEXT, nullable=True)
     categories = relationship('ItemCategory')
 
-    stock_items = relationship('StockItem', uselist=False,
-                               back_populates='item')
+    stock_item = relationship('StockItem', uselist=False,
+                              back_populates='item')
 
     __table_args__ = (CheckConstraint('char_length(code) >= 4'),
                       CheckConstraint('char_length(description) >= 4'),)
@@ -86,7 +86,7 @@ class StockItem(Base):
     modification = Column(DateTime, default=datetime.datetime.utcnow,
                           nullable=False)
 
-    item = relationship('Item', back_populates='stock_items')
+    item = relationship('Item', back_populates='stock_item')
     basket_item = relationship('BasketItem', back_populates='stock_item')
     reservation = relationship("Reservation", back_populates="stock_item")
 
@@ -126,6 +126,7 @@ class BasketItem(Base):
                           nullable=False)
 
     basket = relationship("Basket", back_populates="basket_items")
+    reservation = relationship("Reservation", back_populates="basket_item")
     stock_item = relationship("StockItem", back_populates="basket_item")
 
     __table_args__ = (CheckConstraint('count >= 0'),
@@ -138,10 +139,10 @@ class Reservation(Base):
                            ForeignKey("stock_items.id",
                                       onupdate="CASCADE", ondelete="CASCADE"),
                            nullable=False)
-    basket_item = Column(Integer,
-                         ForeignKey("basket_items.id",
-                                    onupdate="CASCADE", ondelete="CASCADE"),
-                         nullable=False)
+    basket_item_id = Column(Integer,
+                            ForeignKey("basket_items.id",
+                                       onupdate="CASCADE", ondelete="CASCADE"),
+                            nullable=False)
     count = Column(Integer, nullable=False)
 
     creation = Column(DateTime, default=datetime.datetime.utcnow,
@@ -149,10 +150,11 @@ class Reservation(Base):
     modification = Column(DateTime, default=datetime.datetime.utcnow,
                           nullable=False)
 
+    basket_item = relationship("BasketItem", back_populates="reservation")
     stock_item = relationship("StockItem", back_populates="reservation")
 
     __table_args__ = (CheckConstraint('count >= 0'),
-                      UniqueConstraint('stock_item_id', 'basket_item'))
+                      UniqueConstraint('stock_item_id', 'basket_item_id'))
 
 def create_tables(engine):
     Base.metadata.create_all(engine)
