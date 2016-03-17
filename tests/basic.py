@@ -24,7 +24,7 @@ class Simple(unittest.TestCase):
         with open(os.path.join(MODULE_DIR, 'shop_catalog1.json'), 'r',
                   encoding="ISO-8859-1") as fp:
             items = json.load(fp, encoding="ISO-8859-1")
-            catalog.add_items(items)
+            catalog.add_items_with_stock(items)
 
 if __name__ == '__main__':
     unittest.main()

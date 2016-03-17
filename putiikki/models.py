@@ -19,7 +19,9 @@ class Item(Base):
     # (language, short_description, description)
     description = Column(TEXT, nullable=False)
     long_description = Column(TEXT, nullable=True)
-    categories = relationship("ItemCategory")
+    categories = relationship('ItemCategory')
+
+    stock = relationship('Stock', uselist=False, back_populates='item')
 
     __table_args__ = (CheckConstraint('char_length(code) >= 4'),
                       CheckConstraint('char_length(description) >= 4'),)
@@ -43,6 +45,8 @@ class ItemCategory(Base):
                                     onupdate="CASCADE", ondelete="CASCADE"),
                          primary_key=True)
     primary = Column(Boolean, default=False, nullable=False)
+
+    item = relationship("Item")
     category = relationship("Category")
 
     __table_args__ = (UniqueConstraint('item_id', 'category_id'),)
@@ -50,16 +54,18 @@ class ItemCategory(Base):
 class Stock(Base):
     __tablename__ = 'stocks'
     id = Column(Integer, primary_key=True)
-    item = Column(Integer,
-                  ForeignKey("items.id",
-                             onupdate="CASCADE", ondelete="CASCADE"),
-                  nullable=False, unique=True)
+    item_id = Column(Integer,
+                     ForeignKey("items.id",
+                                onupdate="CASCADE", ondelete="CASCADE"),
+                     nullable=False, unique=True)
     count = Column(Integer, nullable=False)
     price = Column(Numeric(12,2), nullable=False)
     visible = Column(Boolean, default=True, nullable=False)
 
     modification = Column(DateTime, default=datetime.datetime.utcnow,
                           nullable=False)
+
+    item = relationship('Item', back_populates='stock')
 
     __table_args__ = (CheckConstraint('count >= 0'),
                       CheckConstraint('price >= 0.0'), )

@@ -106,14 +106,44 @@ class Catalog(object):
         self.session.commit()
         return citem
 
-    def add_category(self, name):
+    def add_items(self, items):
         self.session.begin(subtransactions=True)
-        cater = models.Category(name=name)
-        self.session.add(cater)
-        self.session.commit()
-        return cater
+        for item in items:
+            # KeyErrors not caught if missing required field
 
-    # def remove_category
+            try:
+                long_desc = item['long description']
+            except KeyError:
+                long_desc = None
+
+            citem = models.Item(code=item['code'],
+                                description=item['description'],
+                                long_description=long_desc)
+
+            primary=True
+            for cat in item['categories']:
+                q = self.session.query(models.Category).\
+                  filter(models.Category.name == cat)
+                cater = q.first()
+
+                icater = models.ItemCategory(item=citem, category=cater,
+                                             primary=primary)
+                citem.categories.append(icater)
+                primary=False
+            self.session.add(citem)
+        self.session.commit()
+
+    def add_category(self, name):
+        self.add_categories([name])
+
+    def add_categories(self, names):
+        self.session.begin(subtransactions=True)
+        for name in names:
+            cater = models.Category(name=name)
+            self.session.add(cater)
+        self.session.commit()
+
+    # def remove_category: should make sure that zero use
     # def rename_category
 
     def add_item_category(self, item_id, category_id, primary=False):
@@ -161,7 +191,7 @@ class Catalog(object):
         q = self.session.query(models.Item, models.Stock).\
           with_entities(models.Stock).\
           filter(models.Item.code == code).\
-          filter(models.Item.id == models.Stock.item)
+          filter(models.Item.id == models.Stock.item_id)
         res = q.first()
         if res is None:
             return None
@@ -170,7 +200,22 @@ class Catalog(object):
             return res
         return (res.id, res.price, res.count)
 
+    def add_stock(self, items):
+        self.session.begin(subtransactions=True)
+
+        for item in items:
+            q = self.session.query(models.Item).\
+              filter(models.Item.code == item['code'])
+
+            citem = q.first()
+            stock = models.Stock(item=citem, count=item['count'],
+                                 price=item['price'])
+            self.session.add(stock)
+        self.session.commit()
+
     def update_stock(self, code, count, price, item_id=None):
+        self.session.begin(subtransactions=True)
+
         if item_id is not None:
             q = self.session.query(models.Item, models.Stock).\
               with_entities(models.Stock).\
@@ -182,7 +227,6 @@ class Catalog(object):
               filter(models.Item.code == code).\
               filter(models.Item.id == models.Stock.item)
 
-        self.session.begin(subtransactions=True)
         if q.count() == 0:
             stock = models.Stock(item=item_id, count=count, price=price)
             self.session.add(stock)
@@ -192,64 +236,17 @@ class Catalog(object):
             stock.price = price
         self.session.commit()
 
-    def add_items(self, items):
+    def add_items_with_stock(self, items):
         self.session.begin(subtransactions=True)
 
-        categories = []
+        categories = set()
         for item in items:
-            # KeyErrors not caught if missing required field
+            for x in item['categories']:
+                categories.add(x)
+        self.add_categories(categories)
 
-            try:
-                long_desc = item['long description']
-            except KeyError:
-                long_desc = None
-
-            q = self.session.query(models.Item).\
-              filter(models.Item.code == item['code'])
-
-            if q.count() == 0:
-                citem = self.add_item(item['code'],
-                                      item['description'],
-                                      long_desc)
-                # needed to have up to date Id field
-                self.session.flush()
-                self.session.refresh(citem)
-            else:
-                citem = q.first()
-            self.update_stock(item['code'], item['count'], item['price'],
-                              citem.id)
-
-            if 'categories' in item:
-                categories.append((citem.id, item['categories']))
-
-        for item_id, cats in categories:
-            primary = True
-            for cat in cats:
-                q = self.session.query(models.Item, models.Category,
-                                       models.ItemCategory).\
-                  with_entities(models.Item).\
-                  filter(models.Item.id == item_id).\
-                  filter(models.Item.id == models.ItemCategory.item_id).\
-                  filter(models.Category.id == models.ItemCategory.category_id).\
-                  filter(models.Category.name == cat)
-
-                if q.count() > 0:
-                    primary = False
-                    continue
-
-                q = self.session.query(models.Category).\
-                  filter(models.Category.name == cat)
-
-                if q.count() == 0:
-                    cater = self.add_category(cat)
-                    self.session.flush()
-                    self.session.refresh(cater)
-                else:
-                    cater = q.first()
-
-                self.add_item_category(item_id, cater.id, primary)
-                primary = False
-
+        self.add_items(items)
+        self.add_stock(items)
         self.session.commit()
 
     def add_items_test(self, items):
@@ -301,7 +298,7 @@ class Catalog(object):
           with_entities(models.Item.code, models.Item.description,
                         models.Category.name, models.Stock.price,
                         models.Stock.count).\
-          filter(models.Item.id == models.Stock.item).\
+          filter(models.Item.id == models.Stock.item_id).\
           filter(models.ItemCategory.item_id == models.Item.id).\
           filter(models.ItemCategory.category_id == models.Category.id).\
           filter(models.ItemCategory.primary == True)
@@ -320,7 +317,7 @@ class Catalog(object):
                         models.Category.name, models.Stock.price,
                         models.Stock.count).\
           filter(models.Stock.price.between(*price_range),
-                 models.Item.id == models.Stock.item,
+                 models.Item.id == models.Stock.item_id,
                  models.Item.description.like('{:s}%'.format(prefix)),
                  models.ItemCategory.item_id == models.Item.id,
                  models.ItemCategory.category_id == models.Category.id,
@@ -346,11 +343,11 @@ class Catalog(object):
         if prefix is not None:
             q = q.filter(models.Item.description.like('{:s}%'.format(prefix)))
 
-        q = q.filter(models.Item.id == models.Stock.item,
-                     models.ItemCategory.item_id == models.Item.id,
-                     models.ItemCategory.category_id == models.Category.id,
-                     models.ItemCategory.primary == True,
-                     pg_case >= 0)
+        q = q.join(models.Stock.item).\
+          filter(models.ItemCategory.item_id == models.Item.id,
+                 models.ItemCategory.category_id == models.Category.id,
+                 models.ItemCategory.primary == True,
+                 pg_case >= 0)
 
         q = pg_ordering(q, ascending)
         q = pagination(q, page, page_size)
@@ -502,7 +499,7 @@ class Basket(object):
             filter(models.Basket.id == self.id,
                    models.Basket.id == models.BasketItem.basket_id,
                    models.Stock.id == models.BasketItem.stock,
-                   models.Item.id == models.Stock.item,
+                   models.Item.id == models.Stock.item_id,
                    models.BasketItem.id == models.Reservation.basket_item)
         q = ordering(q, ascending, sort_key)
         def to_dict(x):
@@ -526,7 +523,7 @@ class Basket(object):
             filter(models.Basket.id == self.id,
                    models.Basket.id == models.BasketItem.basket_id,
                    models.Stock.id == models.BasketItem.stock,
-                   models.Item.id == models.Stock.item,
+                   models.Item.id == models.Stock.item_id,
                    models.BasketItem.id == models.Reservation.basket_item,
                    pg_case >= 0)
         q = pg_ordering(q, ascending)

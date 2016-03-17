@@ -60,7 +60,21 @@ with open('catalog.json', 'r', encoding="ISO-8859-1") as fp:
     items = json.load(fp, encoding="ISO-8859-1")
 
 print(items)
-be.add_items(items)
+
+# categories = set()
+# for item in items:
+#     for x in item['categories']:
+#         categories.add(x)
+# be.add_categories(categories)
+# be.add_items(items)
+
+# stock = [{'code': x['code'], 'count': x['count'],
+#           'price': x['price']} for x in items]
+# be.add_stock(stock)
+
+# be.session.commit()
+be.add_items_with_stock(items)
+
 print(be.get_item('SIEMENP_CAPBACC_LEMONDROP20'))
 print(be.get_stock('SIEMENP_CAPBACC_LEMONDROP20'))
 
