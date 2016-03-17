@@ -43,7 +43,7 @@ def ordering(q, ascending, sort_key):
     if sort_key == 'description':
         q = q.order_by(order(models.Item.description))
     elif sort_key == 'price':
-        q = q.order_by(order(models.Stock.price))
+        q = q.order_by(order(models.StockItem.price))
     else:
         raise ValueError("Invalid key")
     return q
@@ -55,17 +55,17 @@ def pg_cases(prices):
         op = price_def[0]
         a = price_def[1]
         if op == '<':
-            case = (models.Stock.price < a, i)
+            case = (models.StockItem.price < a, i)
         elif op == '<=':
-            case = (models.Stock.price <= a, i)
+            case = (models.StockItem.price <= a, i)
         elif op == '>':
-            case = (models.Stock.price > a, i)
+            case = (models.StockItem.price > a, i)
         elif op == '>=':
-            case = (models.Stock.price >= a, i)
+            case = (models.StockItem.price >= a, i)
         elif op == '==':
-            case = (models.Stock.price == a, i)
+            case = (models.StockItem.price == a, i)
         elif op == 'range':
-            case = (models.Stock.price.between(a, price_def[2]), i)
+            case = (models.StockItem.price.between(a, price_def[2]), i)
         cases.append(case)
         i += 1
     return cases
@@ -77,7 +77,7 @@ def pg_ordering(q, ascending):
         order = sqla.desc
 
     q = q.order_by(sqla.asc('price_group')).\
-      order_by(order(models.Stock.price)).\
+      order_by(order(models.StockItem.price)).\
       order_by(sqla.asc(models.Item.description))
     return q
 
@@ -188,10 +188,10 @@ class Catalog(object):
         self.session.commit()
 
     def get_stock(self, code, as_object=False):
-        q = self.session.query(models.Item, models.Stock).\
-          with_entities(models.Stock).\
+        q = self.session.query(models.Item, models.StockItem).\
+          with_entities(models.StockItem).\
           filter(models.Item.code == code).\
-          filter(models.Item.id == models.Stock.item_id)
+          filter(models.Item.id == models.StockItem.item_id)
         res = q.first()
         if res is None:
             return None
@@ -208,8 +208,8 @@ class Catalog(object):
               filter(models.Item.code == item['code'])
 
             citem = q.first()
-            stock = models.Stock(item=citem, count=item['count'],
-                                 price=item['price'])
+            stock = models.StockItem(item=citem, count=item['count'],
+                                    price=item['price'])
             self.session.add(stock)
         self.session.commit()
 
@@ -217,18 +217,18 @@ class Catalog(object):
         self.session.begin(subtransactions=True)
 
         if item_id is not None:
-            q = self.session.query(models.Item, models.Stock).\
-              with_entities(models.Stock).\
+            q = self.session.query(models.Item, models.StockItem).\
+              with_entities(models.StockItem).\
               filter(models.Item.id == item_id).\
-              filter(models.Item.id == models.Stock.item)
+              filter(models.Item.id == models.StockItem.item)
         else:
-            q = self.session.query(models.Item, models.Stock).\
-              with_entities(models.Stock).\
+            q = self.session.query(models.Item, models.StockItem).\
+              with_entities(models.StockItem).\
               filter(models.Item.code == code).\
-              filter(models.Item.id == models.Stock.item)
+              filter(models.Item.id == models.StockItem.item)
 
         if q.count() == 0:
-            stock = models.Stock(item=item_id, count=count, price=price)
+            stock = models.StockItem(item=item_id, count=count, price=price)
             self.session.add(stock)
         else:
             stock = q.first()
@@ -294,11 +294,11 @@ class Catalog(object):
     def list_items(self, sort_key='description',
                    ascending=True, page=1, page_size=10):
         q = self.session.query(models.Item, models.Category,
-                               models.ItemCategory, models.Stock).\
+                               models.ItemCategory, models.StockItem).\
           with_entities(models.Item.code, models.Item.description,
-                        models.Category.name, models.Stock.price,
-                        models.Stock.count).\
-          filter(models.Item.id == models.Stock.item_id).\
+                        models.Category.name, models.StockItem.price,
+                        models.StockItem.count).\
+          filter(models.Item.id == models.StockItem.item_id).\
           filter(models.ItemCategory.item_id == models.Item.id).\
           filter(models.ItemCategory.category_id == models.Category.id).\
           filter(models.ItemCategory.primary == True)
@@ -312,12 +312,12 @@ class Catalog(object):
     def search_items(self, prefix, price_range, sort_key='description',
                      ascending=True, page=1, page_size=10):
         q = self.session.query(models.Item, models.Category,
-                               models.ItemCategory, models.Stock).\
+                               models.ItemCategory, models.StockItem).\
           with_entities(models.Item.code, models.Item.description,
-                        models.Category.name, models.Stock.price,
-                        models.Stock.count).\
-          filter(models.Stock.price.between(*price_range),
-                 models.Item.id == models.Stock.item_id,
+                        models.Category.name, models.StockItem.price,
+                        models.StockItem.count).\
+          filter(models.StockItem.price.between(*price_range),
+                 models.Item.id == models.StockItem.item_id,
                  models.Item.description.like('{:s}%'.format(prefix)),
                  models.ItemCategory.item_id == models.Item.id,
                  models.ItemCategory.category_id == models.Category.id,
@@ -334,16 +334,16 @@ class Catalog(object):
         pgs = pg_cases(prices)
         pg_case = sqla.case(pgs, else_ = -1).label('price_group')
         q = self.session.query(models.Item, models.Category,
-                               models.ItemCategory, models.Stock).\
+                               models.ItemCategory, models.StockItem).\
                                with_entities(pg_case, models.Item.code,
                                              models.Item.description,
                                              models.Category.name,
-                                             models.Stock.price,
-                                             models.Stock.count)
+                                             models.StockItem.price,
+                                             models.StockItem.count)
         if prefix is not None:
             q = q.filter(models.Item.description.like('{:s}%'.format(prefix)))
 
-        q = q.join(models.Stock.item).\
+        q = q.join(models.StockItem.item).\
           filter(models.ItemCategory.item_id == models.Item.id,
                  models.ItemCategory.category_id == models.Category.id,
                  models.ItemCategory.primary == True,
@@ -381,8 +381,8 @@ class Catalog(object):
 
     def _get_reservations(self, stock_id):
         q = self.session.query(func.sum(models.Reservation.count)).\
-          filter(models.Stock.id == stock_id).\
-          filter(models.Stock.id == models.Reservation.stock)
+          filter(models.StockItem.id == stock_id).\
+          filter(models.StockItem.id == models.Reservation.stock_item_id)
 
         res = q.first()
         if res is None or res[0] is None:
@@ -402,7 +402,7 @@ class Catalog(object):
     def _update_reservation(self, stock, basket_item):
         self.session.begin(subtransactions=True)
 
-        reservations = self._get_reservations(basket_item.stock)
+        reservations = self._get_reservations(basket_item.stock_item_id)
         # can reserve (scount - reservations)
         reservation = self._get_reservation(basket_item.id)
 
@@ -412,7 +412,7 @@ class Catalog(object):
             reservation.count = rcount
         else:
             rcount = min(basket_item.count, stock.count - reservations)
-            reservation = models.Reservation(stock=stock.id,
+            reservation = models.Reservation(stock_item=stock,
                                              basket_item=basket_item.id,
                                              count=rcount)
             self.session.add(reservation)
@@ -438,7 +438,7 @@ class Basket(object):
         basket_item = self.get_item(stock.id)
         if basket_item is None:
             basket_item = models.BasketItem(basket_id=self.id,
-                                            stock=stock.id,
+                                            stock_item=stock,
                                             count=count)
             self.be.session.add(basket_item)
             self.be.session.flush()
@@ -478,12 +478,13 @@ class Basket(object):
         return self.update_item_count(code, 0)
 
     def get_item(self, stock_id):
-        q = self.be.session.query(models.Stock, models.Basket, models.BasketItem).\
+        q = self.be.session.query(models.StockItem, models.Basket,
+                                  models.BasketItem).\
           with_entities(models.BasketItem).\
-                  filter(models.Stock.id == stock_id).\
+                  filter(models.StockItem.id == stock_id).\
                   filter(models.Basket.id == self.id).\
                   filter(models.Basket.id == models.BasketItem.basket_id).\
-                  filter(models.Stock.id == models.BasketItem.stock)
+                  filter(models.StockItem.id == models.BasketItem.stock_item_id)
         res = q.first()
         return res
 
@@ -491,15 +492,15 @@ class Basket(object):
 
     def list_items(self, sort_key='description', ascending=True):
         q = self.be.session.query(
-            models.Item, models.Stock, models.Basket,
+            models.Item, models.StockItem, models.Basket,
             models.BasketItem, models.Reservation).\
             with_entities(models.Item.code, models.Item.description,
-                          models.Stock.price, models.BasketItem.count,
+                          models.StockItem.price, models.BasketItem.count,
                           models.Reservation.count).\
             filter(models.Basket.id == self.id,
                    models.Basket.id == models.BasketItem.basket_id,
-                   models.Stock.id == models.BasketItem.stock,
-                   models.Item.id == models.Stock.item_id,
+                   models.StockItem.id == models.BasketItem.stock_item_id,
+                   models.Item.id == models.StockItem.item_id,
                    models.BasketItem.id == models.Reservation.basket_item)
         q = ordering(q, ascending, sort_key)
         def to_dict(x):
@@ -514,16 +515,16 @@ class Basket(object):
         pg_case = sqla.case(cases, else_ = -1).label('price_group')
 
         q = self.be.session.query(
-            models.Item, models.Stock, models.Basket,
+            models.Item, models.StockItem, models.Basket,
             models.BasketItem, models.Reservation).\
             with_entities(pg_case, models.Item.code,
-                          models.Item.description, models.Stock.price,
-                          models.Stock.count, models.BasketItem.count,
+                          models.Item.description, models.StockItem.price,
+                          models.StockItem.count, models.BasketItem.count,
                           models.Reservation.count).\
             filter(models.Basket.id == self.id,
                    models.Basket.id == models.BasketItem.basket_id,
-                   models.Stock.id == models.BasketItem.stock,
-                   models.Item.id == models.Stock.item_id,
+                   models.StockItem.id == models.BasketItem.stock_item_id,
+                   models.Item.id == models.StockItem.item_id,
                    models.BasketItem.id == models.Reservation.basket_item,
                    pg_case >= 0)
         q = pg_ordering(q, ascending)
