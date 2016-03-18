@@ -22,18 +22,20 @@ import sys
 from prettytable import PrettyTable
 
 def print_items(items):
-    table = PrettyTable(['description', 'price', 'count'])
+    table = PrettyTable(['description', 'price', 'count', 'reserved'])
     table.align = 'r'
     for item in items:
-        table.add_row([item['description'], item['price'], item['count']])
+        table.add_row([item['description'], item['price'],
+                       item['count'], item['reserved']])
     print(table)
 
 def print_items_pg(items):
-    table = PrettyTable(['price group', 'description', 'price', 'count'])
+    table = PrettyTable(['price group', 'description', 'price', 'count',
+                         'reserved'])
     table.align = 'r'
     for item in items:
         table.add_row([item['price_group'], item['description'],
-                       item['price'], item['count']])
+                       item['price'], item['count'], item['reserved']])
     print(table)
 
 def print_basket(items):
@@ -159,3 +161,16 @@ catalog.update_item('SIEMENP_CAPBACC_LEMONDROP20', description="asdf")
 print("Basket 2 %s" % session2_id)
 print_basket(basket.list_items())
 print("")
+
+catalog.session.commit()
+
+print("list items")
+items = catalog.list_items('description', ascending=True, page=1, page_size=50)
+print_items(items)
+
+print("by price groups")
+items = catalog.list_items_by_prices(prices=[('<', 2.0), ('range', 2.0, 4.99),
+                                              ('>=', 5.0)],
+                                     sort_key='price', ascending=True,
+                                     page=1, page_size=50)
+print_items_pg(items)

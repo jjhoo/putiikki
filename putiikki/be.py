@@ -88,9 +88,14 @@ def pagination(q, page, page_size):
         raise ValueError("Invalid page")
     return q
 
-def item_to_json(code, description, category, price, count):
-    return {'code': code, 'description': description,
-            'category': category, 'price': price, 'count': count }
+def item_to_json(code, description, category, price, count, reserved=-1):
+    x = {'code': code, 'description': description,
+         'category': category, 'price': price, 'count': count}
+    if reserved is None:
+        x['reserved'] = 0
+    else:
+        x['reserved'] = reserved
+    return x
 
 class Catalog(object):
     def __init__(self, engine):
@@ -173,10 +178,10 @@ class Catalog(object):
 
     def update_item(self, code, description=None, long_description=None,
                     new_code=None):
+        self.session.begin(subtransactions=True)
         q = self.session.query(models.Item).filter(models.Item.code == code)
         item = q.first()
 
-        self.session.begin(subtransactions=True)
         if new_code is not None:
             item.code = new_code
 
@@ -293,15 +298,24 @@ class Catalog(object):
 
     def list_items(self, sort_key='description',
                    ascending=True, page=1, page_size=10):
+        sq = self.session.query(models.Reservation.stock_item_id,
+                                func.sum(models.Reservation.count).\
+                                label('reserved')).\
+                                group_by(models.Reservation.stock_item_id).\
+                                subquery()
         q = self.session.query(models.Item, models.Category,
-                               models.ItemCategory, models.StockItem).\
+                               models.ItemCategory, models.StockItem,
+                               sq.c.reserved).\
           with_entities(models.Item.code, models.Item.description,
                         models.Category.name, models.StockItem.price,
-                        models.StockItem.count).\
-          filter(models.Item.id == models.StockItem.item_id).\
-          filter(models.ItemCategory.item_id == models.Item.id).\
-          filter(models.ItemCategory.category_id == models.Category.id).\
-          filter(models.ItemCategory.primary == True)
+                        models.StockItem.count, sq.c.reserved).\
+          join(models.StockItem).\
+          join(models.ItemCategory,
+               models.Item.id == models.ItemCategory.item_id).\
+          join(models.Category,
+               models.Category.id == models.ItemCategory.category_id).\
+          filter(models.ItemCategory.primary == True).\
+          outerjoin(sq, models.StockItem.id == sq.c.stock_item_id)
 
         q = ordering(q, ascending, sort_key)
         q = pagination(q, page, page_size)
@@ -311,17 +325,28 @@ class Catalog(object):
 
     def search_items(self, prefix, price_range, sort_key='description',
                      ascending=True, page=1, page_size=10):
+        sq = self.session.query(models.Reservation.stock_item_id,
+                                func.sum(models.Reservation.count).\
+                                label('reserved')).\
+                                group_by(models.Reservation.stock_item_id).\
+                                subquery()
+
         q = self.session.query(models.Item, models.Category,
-                               models.ItemCategory, models.StockItem).\
+                               models.ItemCategory, models.StockItem,
+                               sq.c.reserved).\
           with_entities(models.Item.code, models.Item.description,
                         models.Category.name, models.StockItem.price,
-                        models.StockItem.count).\
+                        models.StockItem.count,
+                        sq.c.reserved).\
+          join(models.StockItem).\
+          join(models.ItemCategory,
+               models.Item.id == models.ItemCategory.item_id).\
+          join(models.Category,
+               models.Category.id == models.ItemCategory.category_id).\
           filter(models.StockItem.price.between(*price_range),
-                 models.Item.id == models.StockItem.item_id,
                  models.Item.description.like('{:s}%'.format(prefix)),
-                 models.ItemCategory.item_id == models.Item.id,
-                 models.ItemCategory.category_id == models.Category.id,
-                 models.ItemCategory.primary == True)
+                 models.ItemCategory.primary == True).\
+          outerjoin(sq, models.StockItem.id == sq.c.stock_item_id)
 
         q = ordering(q, ascending, sort_key)
         q = pagination(q, page, page_size)
@@ -333,17 +358,27 @@ class Catalog(object):
                              ascending=True, page=1, page_size=10):
         pgs = pg_cases(prices)
         pg_case = sqla.case(pgs, else_ = -1).label('price_group')
+
+        sq = self.session.query(models.Reservation.stock_item_id,
+                                func.sum(models.Reservation.count).\
+                                label('reserved')).\
+                                group_by(models.Reservation.stock_item_id).\
+                                subquery()
+
         q = self.session.query(models.Item, models.Category,
-                               models.ItemCategory, models.StockItem).\
+                               models.ItemCategory, models.StockItem,
+                               sq.c.reserved).\
                                with_entities(pg_case, models.Item.code,
                                              models.Item.description,
                                              models.Category.name,
                                              models.StockItem.price,
-                                             models.StockItem.count)
+                                             models.StockItem.count,
+                                             sq.c.reserved)
         if prefix is not None:
             q = q.filter(models.Item.description.like('{:s}%'.format(prefix)))
 
         q = q.join(models.StockItem.item).\
+          outerjoin(sq, models.StockItem.id == sq.c.stock_item_id).\
           filter(models.ItemCategory.item_id == models.Item.id,
                  models.ItemCategory.category_id == models.Category.id,
                  models.ItemCategory.primary == True,
