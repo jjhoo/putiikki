@@ -31,8 +31,9 @@ json_options = { 'default': json_handler,
                  'ensure_ascii': False,
                  'sort_keys': False }
 
-def create_basket(be):
-    session_id = str(uuid.uuid4())
+def create_basket(be, session_id=None):
+    if session_id is None:
+        session_id = str(uuid.uuid4())
     basket = be.create_basket(session_id)
 
     # print(basket)
@@ -54,6 +55,10 @@ def dispatch(be, json_cmd):
     else:
         return {'status': 'error' , 'value': 'unknown module'}
 
+    # Do not expose private functions
+    if json_cmd['function'][0] == '_':
+        return {'status': 'error' , 'value': 'unknown function'}
+
     try:
         fun = getattr(obj, json_cmd['function'])
     except AttributeError:
@@ -63,49 +68,54 @@ def dispatch(be, json_cmd):
     # print(json.dumps(res, **json_options))
     return res
 
-with open('examples/chili_heads_store/settings.json', 'r') as fp:
-    settings = json.load(fp, encoding="UTF-8")
+def test():
+    with open('examples/chili_heads_store/settings.json', 'r') as fp:
+        settings = json.load(fp, encoding="UTF-8")
 
-# print(settings)
+    # print(settings)
 
-dbc = be.db_connect(settings)
-models.drop_tables(dbc)
-models.create_tables(dbc)
+    dbc = be.db_connect(settings)
+    models.drop_tables(dbc)
+    models.create_tables(dbc)
 
-be = be.Catalog(dbc)
+    be = be.Catalog(dbc)
 
-with open('examples/chili_heads_store/catalog.json', 'r') as fp:
-    items = json.load(fp, encoding="ISO-8859-1")
+    with open('examples/chili_heads_store/catalog.json', 'r') as fp:
+        items = json.load(fp, encoding="ISO-8859-1")
 
-# print(items)
-be.add_items(items)
-session = create_basket(be)
+    # print(items)
+    be.add_items(items)
+    session = create_basket(be)
 
-jcmd = { 'module': 'catalog', 'function': 'list_items',
-         'args': {'sort_key': 'description', 'ascending': True,
-                  'page': 1, 'page_size': 10 } }
-print("JSON: " + json.dumps(jcmd))
-print()
-
-res = dispatch(be, jcmd)
-print("JSON: " + json.dumps({'status': 'ok', 'value': res}, **json_options))
-print()
-
-jcmd = { 'module': 'basket', 'function': 'list_items', 'session': session,
-         'args': {'sort_key': 'description', 'ascending': True } }
-print("JSON: " + json.dumps(jcmd))
-res = dispatch(be, jcmd)
-print("JSON: " + json.dumps({'status': 'ok', 'value': res}, **json_options))
-print()
-
-# Fail
-try:
-    jcmd = { 'module': 'basket', 'function': 'list_items', 'session': session,
+    jcmd = { 'module': 'catalog', 'function': 'list_items',
              'args': {'sort_key': 'description', 'ascending': True,
-                      'page_size': 10} }
-    print(json.dumps(jcmd))
-    dispatch(be, jcmd)
-except TypeError:
-    print("Failed as intended")
-    print("JSON: " + json.dumps({'status': 'error', 'value': 'unknown argument'}))
-print()
+                      'page': 1, 'page_size': 10 } }
+    print("JSON: " + json.dumps(jcmd))
+    print()
+
+    res = dispatch(be, jcmd)
+    print("JSON: " + json.dumps({'status': 'ok', 'value': res},
+                                **json_options))
+    print()
+
+    jcmd = { 'module': 'basket', 'function': 'list_items', 'session': session,
+             'args': {'sort_key': 'description', 'ascending': True } }
+    print("JSON: " + json.dumps(jcmd))
+    res = dispatch(be, jcmd)
+    print("JSON: " + json.dumps({'status': 'ok', 'value': res},
+                                **json_options))
+    print()
+
+    # Fail
+    try:
+        jcmd = { 'module': 'basket', 'function': 'list_items',
+                 'session': session,
+                 'args': {'sort_key': 'description', 'ascending': True,
+                          'page_size': 10} }
+        print(json.dumps(jcmd))
+        dispatch(be, jcmd)
+    except TypeError:
+        print("Failed as intended")
+        print("JSON: " + json.dumps({'status': 'error',
+                                     'value': 'unknown argument'}))
+    print()
