@@ -439,14 +439,14 @@ class Basket(object):
         self.id = basket_id
 
     @staticmethod
-    def get(session, basket_id):
-        q = session.query(models.Basket).\
+    def get(catalog, basket_id):
+        q = catalog.session.query(models.Basket).\
             filter(models.Basket.session == basket_id)
         res = q.first()
         if res is None:
             return None
 
-        return Basket(session, res.id)
+        return Basket(catalog, res.id)
 
     @staticmethod
     def create(catalog, basket_id):
