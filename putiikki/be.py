@@ -254,48 +254,6 @@ class Catalog(object):
         self.add_stock(items)
         self.session.commit()
 
-    def add_items_test(self, items):
-        self.session.begin(subtransactions=True)
-
-        for item in items:
-            # KeyErrors not caught if missing required field
-
-            try:
-                long_desc = item['long description']
-            except KeyError:
-                long_desc = None
-
-            q = self.session.query(models.Item).\
-              filter(models.Item.code == item['code'])
-
-            if q.count() == 0:
-                citem = self.add_item(item['code'], item['description'],
-                                      long_desc)
-                try:
-                    primary = True
-                    for c in item['categories']:
-                        item_cater = models.ItemCategory(primary=primary)
-                        q = self.session.query(models.Category).\
-                          filter(models.Category.name == c)
-                        if q.count() == 0:
-                            item_cater.category = models.Category(name=c)
-                        else:
-                            item_cater.category = q.first()
-
-                        citem.categories.append(item_cater)
-                        primary = False
-                except KeyError:
-                    pass
-                # needed to have up to date Id field
-                self.session.flush()
-                self.session.refresh(citem)
-            else:
-                citem = q.first()
-            self.update_stock(item['code'], item['count'], item['price'],
-                              citem.id)
-
-        self.session.commit()
-
     def list_items(self, sort_key='description',
                    ascending=True, page=1, page_size=10):
         sq = self.session.query(models.Reservation.stock_item_id,
