@@ -77,6 +77,10 @@ print(items)
 # catalog.session.commit()
 catalog.add_items_with_stock(items)
 
+items = catalog.foo(["Siemenpussit :: Chilit :: Capsicum baccatum", "Tarjous"])
+print(items)
+sys.exit()
+
 print(catalog.get_item('SIEMENP_CAPBACC_LEMONDROP20'))
 print(catalog.get_stock('SIEMENP_CAPBACC_LEMONDROP20'))
 

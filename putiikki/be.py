@@ -25,6 +25,7 @@ from sqlalchemy.sql import func
 
 from sqlalchemy.orm.session import Session
 from sqlalchemy.engine.url import URL
+from sqlalchemy.orm import aliased
 
 from . import models
 
@@ -279,6 +280,27 @@ class Catalog(object):
         q = pagination(q, page, page_size)
 
         res = [item_to_json(*x) for x in q]
+        return res
+
+    def foo(self, categories):
+        q = self.session.query(models.Item).\
+                               join(models.ItemCategory,
+                                    models.Item.id == models.ItemCategory.item_id).\
+                               join(models.Category,
+                                    models.Category.id == models.ItemCategory.category_id).\
+                               filter(models.Category.name == categories[0])
+        i = 0
+        for cater in categories[1:]:
+            alias1 = aliased(models.Category)
+            alias2 = aliased(models.ItemCategory)
+            q = q.join(alias2, models.Item.id == alias2.item_id).\
+              filter(alias1.id == alias2.category_id).\
+              filter(alias1.name == cater)
+            i += 1
+
+        print(str(q))
+        res = [(x.id, x.description) for x in q]
+        # res = [x for x in q]
         return res
 
     def search_items(self, prefix, price_range, sort_key='description',
