@@ -82,7 +82,7 @@ class StockItem(Base):
                                 onupdate="CASCADE", ondelete="CASCADE"),
                      nullable=False, unique=True)
     count = Column(Integer, nullable=False)
-    price = Column(Numeric(12,2), nullable=False)
+    price = Column(Numeric(12,2), nullable=False, index=True)
     visible = Column(Boolean, default=True, nullable=False)
 
     modification = Column(DateTime, default=datetime.datetime.utcnow,
