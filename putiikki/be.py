@@ -41,7 +41,7 @@ def ordering(q, ascending, sort_key):
         order = sqla.desc
 
     if sort_key == 'description':
-        q = q.order_by(order(models.Item.description))
+        q = q.order_by(order(models.Item.description_lower))
     elif sort_key == 'price':
         q = q.order_by(order(models.StockItem.price))
     else:
@@ -78,7 +78,7 @@ def pg_ordering(q, ascending):
 
     q = q.order_by(sqla.asc('price_group')).\
       order_by(order(models.StockItem.price)).\
-      order_by(sqla.asc(models.Item.description))
+      order_by(sqla.asc(models.Item.description_lower))
     return q
 
 def pagination(q, page, page_size):
@@ -123,6 +123,7 @@ class Catalog(object):
 
             citem = models.Item(code=item['code'],
                                 description=item['description'],
+                                description_lower=item['description'].lower(),
                                 long_description=long_desc)
 
             primary=True
@@ -187,6 +188,7 @@ class Catalog(object):
 
         if description is not None:
             item.description = description
+            item.description_lower = description.lower()
 
         if long_description is not None:
             item.long_description = long_description
@@ -302,7 +304,7 @@ class Catalog(object):
           join(models.Category,
                models.Category.id == models.ItemCategory.category_id).\
           filter(models.StockItem.price.between(*price_range),
-                 models.Item.description.like('{:s}%'.format(prefix)),
+                 models.Item.description_lower.like('{:s}%'.format(prefix.lower())),
                  models.ItemCategory.primary == True).\
           outerjoin(sq, models.StockItem.id == sq.c.stock_item_id)
 
@@ -333,7 +335,7 @@ class Catalog(object):
                                              models.StockItem.count,
                                              sq.c.reserved)
         if prefix is not None:
-            q = q.filter(models.Item.description.like('{:s}%'.format(prefix)))
+            q = q.filter(models.Item.description_lower.like('{:s}%'.format(prefix.lower())))
 
         q = q.join(models.StockItem.item).\
           outerjoin(sq, models.StockItem.id == sq.c.stock_item_id).\

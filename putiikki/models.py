@@ -37,7 +37,8 @@ class Item(Base):
 
     # descriptions could be in a separate table
     # (language, short_description, description)
-    description = Column(TEXT, nullable=False)
+    description = Column(TEXT, nullable=False, index=True)
+    description_lower = Column(TEXT, nullable=False, index=True)
     long_description = Column(TEXT, nullable=True)
     categories = relationship('ItemCategory')
 
@@ -45,7 +46,8 @@ class Item(Base):
                               back_populates='item')
 
     __table_args__ = (CheckConstraint('char_length(code) >= 4'),
-                      CheckConstraint('char_length(description) >= 4'),)
+                      CheckConstraint('char_length(description) >= 4'),
+                      CheckConstraint('char_length(description_lower) >= 4'),)
 
 class Category(Base):
     __tablename__ = 'categories'
