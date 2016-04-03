@@ -65,7 +65,7 @@ class ItemCategory(Base):
                      primary_key=True)
     category_id = Column(Integer,
                          ForeignKey("categories.id",
-                                    onupdate="CASCADE", ondelete="CASCADE"),
+                                    onupdate="CASCADE", ondelete="RESTRICT"),
                          primary_key=True)
     primary = Column(Boolean, default=False, nullable=False)
 
@@ -79,7 +79,7 @@ class StockItem(Base):
     id = Column(Integer, primary_key=True)
     item_id = Column(Integer,
                      ForeignKey("items.id",
-                                onupdate="CASCADE", ondelete="CASCADE"),
+                                onupdate="CASCADE", ondelete="RESTRICT"),
                      nullable=False, unique=True)
     count = Column(Integer, nullable=False)
     price = Column(Numeric(12,2), nullable=False, index=True)
