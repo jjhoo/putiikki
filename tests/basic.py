@@ -42,6 +42,31 @@ class Simple(unittest.TestCase):
         self.clear_db()
         self.catalog.session.commit()
 
+    def test_catalog_update_item(self):
+        self.fill_db()
+        self.catalog.session.commit()
+
+        self.catalog.update_item('SIEMENP_CAPBACC_LEMONDROP20',
+                                 new_code='SIEMENP_CAPBACC_LEMONDROP25',
+                                 description='Lemon Drop seed pack, 25 seeds')
+        self.catalog.update_stock('SIEMENP_CAPBACC_LEMONDROP25',
+                                  count=0, price=6.00)
+        self.clear_db()
+        self.catalog.session.commit()
+
+    def test_catalog_update_stock_fail(self):
+        self.fill_db()
+        self.catalog.session.commit()
+
+        try:
+            self.catalog.update_stock('SIEMENP_CAPBACC_LEMONDROP21',
+                                      count=0, price=6.00)
+        except KeyError as ex:
+            self.catalog.session.rollback()
+
+        self.clear_db()
+        self.catalog.session.commit()
+
     def test_long_success(self):
         self.fill_db()
         self.catalog.session.commit()

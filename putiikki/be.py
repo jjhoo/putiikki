@@ -220,25 +220,26 @@ class Catalog(object):
             self.session.add(stock)
         self.session.commit()
 
-    def update_stock(self, code, count, price, item_id=None):
+    def update_stock(self, code, count, price):
         self.session.begin(subtransactions=True)
 
-        if item_id is not None:
-            q = self.session.query(models.Item, models.StockItem).\
+        q = self.session.query(models.Item, models.StockItem).\
               with_entities(models.StockItem).\
-              filter(models.Item.id == item_id).\
-              filter(models.Item.id == models.StockItem.item)
-        else:
-            q = self.session.query(models.Item, models.StockItem).\
-              with_entities(models.StockItem).\
-              filter(models.Item.code == code).\
-              filter(models.Item.id == models.StockItem.item)
+              join(models.StockItem.item).\
+              filter(models.Item.code == code)
 
-        if q.count() == 0:
-            stock = models.StockItem(item=item_id, count=count, price=price)
-            self.session.add(stock)
+        stock = q.first()
+        if stock is None:
+            q = self.session.query(models.Item).\
+              filter(models.Item.code == code)
+            item = q.first()
+            if item is not None:
+                stock = models.StockItem(item=item, count=count, price=price)
+                self.session.add(stock)
+            else:
+                self.session.rollback()
+                raise KeyError('Unknown item code')
         else:
-            stock = q.first()
             stock.count += count
             stock.price = price
         self.session.commit()
