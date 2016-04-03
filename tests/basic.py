@@ -12,6 +12,20 @@ from putiikki import be, models
 import json
 import uuid
 
+def fill_clear_db(fun):
+    def new_fun(self, *args, **kw):
+        self.fill_db()
+        self.catalog.session.commit()
+
+        res = fun(self, *args, **kw)
+
+        self.clear_db()
+        self.catalog.session.commit()
+
+        return res
+
+    return new_fun
+
 class Simple(unittest.TestCase):
     def setUp(self):
         settings = { "DB_ENGINE" : { "drivername": "postgresql",
@@ -35,42 +49,28 @@ class Simple(unittest.TestCase):
             items = json.load(fp, encoding="ISO-8859-1")
             self.catalog.add_items_with_stock(items)
 
+    @fill_clear_db
     def test_create_catalog(self):
-        self.fill_db()
-        self.catalog.session.commit()
+        pass
 
-        self.clear_db()
-        self.catalog.session.commit()
-
+    @fill_clear_db
     def test_catalog_update_item(self):
-        self.fill_db()
-        self.catalog.session.commit()
-
         self.catalog.update_item('SIEMENP_CAPBACC_LEMONDROP20',
                                  new_code='SIEMENP_CAPBACC_LEMONDROP25',
                                  description='Lemon Drop seed pack, 25 seeds')
         self.catalog.update_stock('SIEMENP_CAPBACC_LEMONDROP25',
                                   count=0, price=6.00)
-        self.clear_db()
-        self.catalog.session.commit()
 
+    @fill_clear_db
     def test_catalog_update_stock_fail(self):
-        self.fill_db()
-        self.catalog.session.commit()
-
         try:
             self.catalog.update_stock('SIEMENP_CAPBACC_LEMONDROP21',
                                       count=0, price=6.00)
         except KeyError as ex:
             self.catalog.session.rollback()
 
-        self.clear_db()
-        self.catalog.session.commit()
-
+    @fill_clear_db
     def test_long_success(self):
-        self.fill_db()
-        self.catalog.session.commit()
-
         catalog = self.catalog
 
         catalog.get_item('SIEMENP_CAPBACC_LEMONDROP20')
@@ -114,9 +114,6 @@ class Simple(unittest.TestCase):
 
         # catalog.remove_item('SIEMENP_CAPBACC_LEMONDROP5')
         # catalog.update_item('SIEMENP_CAPBACC_LEMONDROP20', description="asdf")
-        catalog.session.commit()
-
-        self.clear_db()
         catalog.session.commit()
 
 if __name__ == '__main__':
