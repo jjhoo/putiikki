@@ -20,27 +20,33 @@ class Simple(unittest.TestCase):
         models.drop_tables(eng)
         models.create_tables(eng)
         self.eng = eng
+        self.catalog = be.Catalog(self.eng)
+
+    def clear_db(self):
+        rows = self.catalog.session.query(models.StockItem).delete()
+        rows = self.catalog.session.query(models.Item).delete()
+        rows = self.catalog.session.query(models.Category).delete()
+        rows = self.catalog.session.query(models.Basket).delete()
+        self.catalog.session.commit()
+
+    def fill_db(self):
+        with open(os.path.join(MODULE_DIR, 'shop_catalog1.json'), 'r',
+                  encoding="ISO-8859-1") as fp:
+            items = json.load(fp, encoding="ISO-8859-1")
+            self.catalog.add_items_with_stock(items)
 
     def test_create_catalog(self):
-        models.drop_tables(self.eng)
-        models.create_tables(self.eng)
-        catalog = be.Catalog(self.eng)
+        self.fill_db()
+        self.catalog.session.commit()
 
-        with open(os.path.join(MODULE_DIR, 'shop_catalog1.json'), 'r',
-                  encoding="ISO-8859-1") as fp:
-            items = json.load(fp, encoding="ISO-8859-1")
-            catalog.add_items_with_stock(items)
-        catalog.session.commit()
+        self.clear_db()
+        self.catalog.session.commit()
 
     def test_long_success(self):
-        models.drop_tables(self.eng)
-        models.create_tables(self.eng)
-        catalog = be.Catalog(self.eng)
+        self.fill_db()
+        self.catalog.session.commit()
 
-        with open(os.path.join(MODULE_DIR, 'shop_catalog1.json'), 'r',
-                  encoding="ISO-8859-1") as fp:
-            items = json.load(fp, encoding="ISO-8859-1")
-            catalog.add_items_with_stock(items)
+        catalog = self.catalog
 
         catalog.get_item('SIEMENP_CAPBACC_LEMONDROP20')
         catalog.get_stock('SIEMENP_CAPBACC_LEMONDROP20')
@@ -79,10 +85,13 @@ class Simple(unittest.TestCase):
         basket2.add_item('SIEMENP_CAPBACC_LEMONDROP5', 16)
         basket2.add_item('SIEMENP_CAPBACC_LEMONDROP20', 1)
         basket2.add_item('SIEMENP_CAPBACC_LEMONDROP20', 1)
+        basket2.update_item_count('SIEMENP_CAPBACC_LEMONDROP20', 4)
 
         # catalog.remove_item('SIEMENP_CAPBACC_LEMONDROP5')
         # catalog.update_item('SIEMENP_CAPBACC_LEMONDROP20', description="asdf")
+        catalog.session.commit()
 
+        self.clear_db()
         catalog.session.commit()
 
 if __name__ == '__main__':
