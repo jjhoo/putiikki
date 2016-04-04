@@ -97,22 +97,37 @@ def item_to_json(code, description, category, price, count, reserved=-1):
         x['reserved'] = reserved
     return x
 
+def subtransaction(fun):
+    def new_fun(self, *args, **kw):
+        self.session.begin(subtransactions=True)
+
+        try:
+            res = fun(self, *args, **kw)
+        except Exception as exc:
+            self.session.rollback()
+            raise exc
+
+        self.session.commit()
+
+        return res
+
+    return new_fun
+
 class Catalog(object):
     def __init__(self, engine):
         self.engine = engine
         self.session = Session(bind=self.engine)
 
+    @subtransaction
     def add_item(self, code, description, long_description=None):
-        self.session.begin(subtransactions=True)
         citem = models.Item(code=code,
                             description=description,
                             long_description=long_description)
         self.session.add(citem)
-        self.session.commit()
         return citem
 
+    @subtransaction
     def add_items(self, items):
-        self.session.begin(subtransactions=True)
         for item in items:
             # KeyErrors not caught if missing required field
 
@@ -137,27 +152,24 @@ class Catalog(object):
                 citem.categories.append(icater)
                 primary=False
             self.session.add(citem)
-        self.session.commit()
 
     def add_category(self, name):
         self.add_categories([name])
 
+    @subtransaction
     def add_categories(self, names):
-        self.session.begin(subtransactions=True)
         for name in names:
             cater = models.Category(name=name)
             self.session.add(cater)
-        self.session.commit()
 
     # def remove_category: should make sure that zero use
     # def rename_category
 
+    @subtransaction
     def add_item_category(self, item_id, category_id, primary=False):
-        self.session.begin(subtransactions=True)
         catitem = models.ItemCategory(item_id=item_id, category_id=category_id,
                                       primary=primary)
         self.session.add(catitem)
-        self.session.commit()
         return catitem
 
     # def remove_item_category
@@ -177,9 +189,9 @@ class Catalog(object):
           delete()
         self.session.commit()
 
+    @subtransaction
     def update_item(self, code, description=None, long_description=None,
                     new_code=None):
-        self.session.begin(subtransactions=True)
         q = self.session.query(models.Item).filter(models.Item.code == code)
         item = q.first()
 
@@ -192,7 +204,6 @@ class Catalog(object):
 
         if long_description is not None:
             item.long_description = long_description
-        self.session.commit()
 
     def get_stock(self, code, as_object=False):
         q = self.session.query(models.Item, models.StockItem).\
@@ -207,8 +218,8 @@ class Catalog(object):
             return res
         return (res.id, res.price, res.count)
 
+    @subtransaction
     def add_stock(self, items):
-        self.session.begin(subtransactions=True)
 
         for item in items:
             q = self.session.query(models.Item).\
@@ -218,11 +229,9 @@ class Catalog(object):
             stock = models.StockItem(item=citem, count=item['count'],
                                     price=item['price'])
             self.session.add(stock)
-        self.session.commit()
 
+    @subtransaction
     def update_stock(self, code, count, price):
-        self.session.begin(subtransactions=True)
-
         q = self.session.query(models.Item, models.StockItem).\
               with_entities(models.StockItem).\
               join(models.StockItem.item).\
@@ -237,16 +246,13 @@ class Catalog(object):
                 stock = models.StockItem(item=item, count=count, price=price)
                 self.session.add(stock)
             else:
-                self.session.rollback()
                 raise KeyError('Unknown item code')
         else:
             stock.count += count
             stock.price = price
-        self.session.commit()
 
+    @subtransaction
     def add_items_with_stock(self, items):
-        self.session.begin(subtransactions=True)
-
         categories = set()
         for item in items:
             for x in item['categories']:
@@ -255,7 +261,6 @@ class Catalog(object):
 
         self.add_items(items)
         self.add_stock(items)
-        self.session.commit()
 
     def list_items(self, sort_key='description',
                    ascending=True, page=1, page_size=10):
@@ -374,9 +379,8 @@ class Catalog(object):
         res = q.first()
         return res
 
+    @subtransaction
     def _update_reservation(self, stock, basket_item):
-        self.session.begin(subtransactions=True)
-
         reservations = self._get_reservations(basket_item.stock_item_id)
         # can reserve (scount - reservations)
         reservation = self._get_reservation(basket_item.id)
@@ -391,7 +395,6 @@ class Catalog(object):
                                              basket_item=basket_item,
                                              count=rcount)
             self.session.add(reservation)
-        self.session.commit()
 
 class Basket(object):
     def __init__(self, catalog, basket_id):
@@ -422,9 +425,8 @@ class Basket(object):
         session.commit()
         return Basket(catalog, basket.id)
 
+    @subtransaction
     def add_item(self, code, count):
-        self.session.begin(subtransactions=True)
-
         item = self.catalog.get_item(code, as_object=True)
         if item is None:
             raise ValueError('Unknown code')
@@ -446,11 +448,9 @@ class Basket(object):
             basket_item.count += count
 
         self.catalog._update_reservation(stock, basket_item)
-        self.session.commit()
 
+    @subtransaction
     def update_item_count(self, code, count):
-        self.session.begin(subtransactions=True)
-
         item = self.catalog.get_item(code, as_object=True)
         if item is None:
             raise ValueError('Unknown item code')
@@ -466,12 +466,10 @@ class Basket(object):
         if count == 0:
             self.session.delete(basket_item)
             # Reservations are automatically deleted (on delete cascade)
-            self.session.commit()
             return
 
         basket_item.count = count
         self.catalog._update_reservation(stock, basket_item)
-        self.session.commit()
 
     def remove_item(self, code):
         return self.update_item_count(code, 0)
